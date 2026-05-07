@@ -192,14 +192,26 @@ function parseOCRText(rawText) {
     if (!isNaN(val) && val > 0) allAmounts.push({ val, index: m.index })
   }
   if (allAmounts.length > 0) {
-    const totalRx = /\b(?:grand\s+total|total\s+(?:due|amount)|amount\s+due|balance\s+(?:due|forward)|invoice\s+total|total)[:\s]*/gi
+    // Require a colon after plain "Total" so we don't match table column headers
+    // ("Total" column header has no colon; "Sub Total:" and "Total:" do).
+    const totalRx = /\b(?:grand\s+total|total\s+(?:due|amount)|amount\s+due|balance\s+(?:due|forward)|invoice\s+total|total\s*:)\s*/gi
     let bestAmount
     for (const tm of text.matchAll(totalRx)) {
+      // Skip if the matched keyword is preceded by "Sub" — e.g. "Sub Total:"
+      const charsBefore = text.slice(Math.max(0, tm.index - 6), tm.index)
+      if (/sub\s*$/i.test(charsBefore)) continue
+
       const keyEnd = tm.index + tm[0].length
-      const nearby = allAmounts.filter(a => a.index >= keyEnd && a.index < keyEnd + 120).sort((a, b) => a.index - b.index)
+      const nearby = allAmounts
+        .filter(a => a.index >= keyEnd && a.index < keyEnd + 120)
+        .sort((a, b) => a.index - b.index)
       if (nearby.length && (!bestAmount || nearby[0].val > bestAmount.val)) bestAmount = nearby[0]
     }
-    result.amount = bestAmount ? bestAmount.val : allAmounts.reduce((mx, a) => a.val > mx.val ? a : mx).val
+    // Fallback: largest amount in the document (the grand total is almost always
+    // the biggest single number on an invoice)
+    result.amount = bestAmount
+      ? bestAmount.val
+      : allAmounts.reduce((mx, a) => (a.val > mx.val ? a : mx)).val
   }
 
   const invPatterns = [
