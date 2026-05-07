@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard'
 import InvoiceList from './pages/InvoiceList'
 import AddInvoice from './pages/AddInvoice'
 import InvoiceDetail from './pages/InvoiceDetail'
+import Settings from './pages/Settings'
 import { useInvoices } from './hooks/useInvoices'
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
               />
             }
           />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </div>
     </HashRouter>

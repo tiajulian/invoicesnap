@@ -27,7 +27,7 @@ async function resizeImage(dataUrl, maxPx = 1200) {
 export default function AddInvoice({ onAdd }) {
   const navigate = useNavigate()
   usePageTitle('Add Invoice') // Improvement #14
-  const { extractData, progress, isProcessing, error } = useOCR()
+  const { extractData, progress, isProcessing, error, engine } = useOCR()
   const [image, setImage] = useState(null)
   const [form, setForm] = useState(BLANK)
   const [status, setStatus] = useState('unpaid')
@@ -227,7 +227,7 @@ export default function AddInvoice({ onAdd }) {
         </div>
       )}
 
-      <OCRProgress progress={progress} isProcessing={isProcessing} error={error} />
+      <OCRProgress progress={progress} isProcessing={isProcessing} error={error} engine={engine} />
 
       {/* Form fields */}
       <div className="space-y-4">
