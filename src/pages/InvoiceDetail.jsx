@@ -11,6 +11,7 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
   const invoice = invoices.find(inv => inv.id === id)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(invoice ?? {})
+  const [amountError, setAmountError] = useState('')
 
   // Improvement #14: dynamic page title
   usePageTitle(invoice ? (invoice.vendor || 'Invoice Detail') : 'Not Found')
@@ -27,9 +28,16 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
     )
   }
 
-  const field = (key) => (val) => setForm(f => ({ ...f, [key]: val }))
+  const field = (key) => (val) => {
+    setForm(f => ({ ...f, [key]: val }))
+    if (key === 'amount') setAmountError('')
+  }
 
   function handleSave() {
+    if (form.amount !== '' && parseFloat(form.amount) < 0) {
+      setAmountError('Amount cannot be negative.')
+      return
+    }
     onUpdate(invoice.id, form)
     setEditing(false)
   }
@@ -80,8 +88,7 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
           <EField label="Vendor" value={form.vendor} onChange={field('vendor')} placeholder="e.g. Acme Corp" />
           <EField label="Invoice Number" value={form.invoiceNumber} onChange={field('invoiceNumber')} placeholder="e.g. INV-0042" />
           <div className="grid grid-cols-2 gap-4">
-            {/* Bug #2: min="0" in edit form */}
-            <EField label="Amount" value={form.amount} onChange={field('amount')} type="number" min="0" step="0.01" placeholder="0.00" />
+            <EField label="Amount" value={form.amount} onChange={field('amount')} type="number" min="0" step="0.01" placeholder="0.00" error={amountError} />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
               {/* Bug #6: show full currency names, matching the Add form */}
@@ -182,8 +189,7 @@ function Row({ label, value }) {
   )
 }
 
-// Bug #7: added placeholder prop to EField
-function EField({ label, value, onChange, type = 'text', placeholder, min, step }) {
+function EField({ label, value, onChange, type = 'text', placeholder, min, step, error }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
@@ -194,8 +200,11 @@ function EField({ label, value, onChange, type = 'text', placeholder, min, step 
         step={step}
         placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
-        className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
+          error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300 focus:ring-blue-400'
+        }`}
       />
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   )
 }

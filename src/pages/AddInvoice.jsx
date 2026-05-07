@@ -32,14 +32,16 @@ export default function AddInvoice({ onAdd }) {
   const [form, setForm] = useState(BLANK)
   const [status, setStatus] = useState('unpaid')
   const [cameraActive, setCameraActive] = useState(false)
-  const [vendorError, setVendorError] = useState('') // Bug #3
+  const [vendorError, setVendorError] = useState('')   // Bug #3
+  const [amountError, setAmountError] = useState('')   // Bug #2
   const fileRef = useRef(null)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
 
   const field = (key) => (val) => {
     setForm(f => ({ ...f, [key]: val }))
-    if (key === 'vendor') setVendorError('') // clear error as user types
+    if (key === 'vendor') setVendorError('')
+    if (key === 'amount') setAmountError('')
   }
 
   async function processImage(dataUrl) {
@@ -92,11 +94,16 @@ export default function AddInvoice({ onAdd }) {
   }
 
   function handleSave() {
-    // Bug #3: show inline error instead of alert
+    let hasError = false
     if (!form.vendor.trim()) {
       setVendorError('Vendor name is required.')
-      return
+      hasError = true
     }
+    if (form.amount !== '' && parseFloat(form.amount) < 0) {
+      setAmountError('Amount cannot be negative.')
+      hasError = true
+    }
+    if (hasError) return
     onAdd({ ...form, image, status })
     navigate('/')
   }
@@ -208,7 +215,6 @@ export default function AddInvoice({ onAdd }) {
         />
 
         <div className="grid grid-cols-2 gap-4">
-          {/* Bug #2: min="0" prevents negative amounts */}
           <Field
             label="Amount"
             value={form.amount}
@@ -217,6 +223,7 @@ export default function AddInvoice({ onAdd }) {
             type="number"
             min="0"
             step="0.01"
+            error={amountError}
           />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
