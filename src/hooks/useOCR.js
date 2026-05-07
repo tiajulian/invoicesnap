@@ -130,16 +130,17 @@ function parseOCRText(rawText) {
 
   // ── Invoice number ───────────────────────────────────────────────────────
   const invPatterns = [
-    // "Invoice No: INV-042" / "Invoice #2024-01"
-    /\binvoice[\s.]*(?:no\.?|num(?:ber)?|#)?[:\s#-]*([A-Z0-9][-A-Z0-9/]{1,24})/i,
-    // "INV-042" standalone
-    /\bINV[-\s#]?([A-Z0-9]{2,20})\b/i,
+    // "Invoice No: OMI82664" / "Invoice Number INV1076349"
+    // Require first char to be a LETTER so we don't accidentally grab a date
+    /\binvoice[\s.]*(?:no\.?|num(?:ber)?|#)?[:\s#-]*([A-Z][A-Z0-9/-]{1,24})\b/i,
+    // "INV1076349" or "INV-042" — capture FULL code including the INV prefix
+    /\b(INV[-]?[A-Z0-9]{2,24})\b/,
+    // Other prefix codes: OMI, ORD, PO, SO, REC, REF + digits/letters
+    /\b([A-Z]{2,4}[-]?\d{4,12})\b/,
     // "Bill / Receipt / Order / Ref / PO No: 12345"
-    /\b(?:bill|receipt|order|ref(?:erence)?|purchase\s+order|po)\s*(?:no\.?|#|number)[:\s#]*([A-Z0-9][-A-Z0-9]{1,20})/i,
-    // Just "#12345" at the start of a line or after a space
+    /\b(?:receipt|order|ref(?:erence)?|purchase\s+order|po)\s*(?:no\.?|#|number)[:\s#]*([A-Z0-9][-A-Z0-9]{1,20})/i,
+    // "#12345" on its own
     /(?:^|[\s:])#([A-Z0-9]{3,20})\b/im,
-    // Standalone number that looks like an invoice number (short alphanumeric after label)
-    /\b(?:no|num|number)[.:\s]+([A-Z0-9]{3,20})\b/i,
   ]
   for (const pat of invPatterns) {
     const m = text.match(pat)
@@ -163,20 +164,38 @@ function parseOCRText(rawText) {
   }
 
   // ── Vendor name ──────────────────────────────────────────────────────────
-  // Skip lines that are generic invoice header words, amounts, dates, or addresses
-  const SKIP =
-    /^(invoice|tax\s+invoice|receipt|bill(?:\s+of\s+sale)?|statement|credit\s+note|debit\s+note|page\s*\d|date|to\s*:|from\s*:|bill\s+to|ship\s+to|sold\s+to|remit\s+to|attention|attn|tel|fax|e?-?mail|www\.|http|address|suite|floor|p\.?o\.?\s*box)$/i
+  // Strategy 1: explicit "FROM" section (e.g. Ordermentum-style invoices)
+  // Matches "FROM" on its own line or as a label, then takes the next text line
+  const fromMatch = text.match(/\bfrom\b\s*[:\s]*\n+\s*([^\n\d$@]{3,60})/i)
+  if (fromMatch) {
+    const c = fromMatch[1].trim()
+    if (c.length >= 3 && !/^(abn|gst|phone|tel|fax)/i.test(c)) result.vendor = c.slice(0, 80)
+  }
 
-  const vendor = lines.find(l => {
-    if (l.length < 3 || l.length > 80) return false
-    if (SKIP.test(l)) return false
-    if (/^\d/.test(l)) return false          // starts with digit → address / amount
-    if (/\$|%/.test(l)) return false          // contains currency / percent
-    if (/^\W+$/.test(l)) return false         // only punctuation
-    if (/\d{5}/.test(l)) return false         // looks like a ZIP code
-    return true
-  })
-  if (vendor) result.vendor = vendor.slice(0, 80)
+  // Strategy 2: explicit "Supplier:" / "Vendor:" / "Billed by:" label
+  if (!result.vendor) {
+    const supplierMatch = text.match(
+      /\b(?:supplier|vendor|billed?\s+by|issued?\s+by|from)[:\s]+([^\n$\d@]{3,60})/i,
+    )
+    if (supplierMatch) result.vendor = supplierMatch[1].trim().slice(0, 80)
+  }
+
+  // Strategy 3: first meaningful line that isn't a header word / address / code
+  if (!result.vendor) {
+    const SKIP =
+      /^(invoice|tax\s+invoice|receipt|bill(?:\s+of\s+sale)?|statement|credit\s+note|debit\s+note|page\s*\d|date|to\s*:|from\s*:|bill\s+to|ship\s+to|sold\s+to|remit\s+to|attention|attn|tel|fax|e?-?mail|www\.|http|address|suite|floor|p\.?o\.?\s*box|abn|gst)$/i
+    const fallback = lines.find(l => {
+      if (l.length < 3 || l.length > 80) return false
+      if (SKIP.test(l)) return false
+      if (/^\d/.test(l)) return false          // starts with digit → address / amount
+      if (/\$|%/.test(l)) return false          // contains currency / percent
+      if (/^\W+$/.test(l)) return false         // only punctuation
+      if (/\d{5}/.test(l)) return false         // looks like a ZIP code
+      if (/^[A-Z]{2,6}\d{4,}$/.test(l)) return false  // looks like a bare invoice code
+      return true
+    })
+    if (fallback) result.vendor = fallback.slice(0, 80)
+  }
 
   return result
 }
