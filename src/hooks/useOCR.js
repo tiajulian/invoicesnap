@@ -1,8 +1,32 @@
 import { useState, useCallback } from 'react'
 
 // ── Image preprocessing ────────────────────────────────────────────────────
-// Convert to grayscale + stretch contrast before OCR so Tesseract sees
-// high-contrast black-on-white text even on coloured / unevenly-lit photos.
+// Otsu binarization: converts the photo to pure black-and-white using the
+// threshold that maximises variance between the text and background classes.
+// This is far more robust than linear contrast stretch for phone photos with
+// shadows, coloured paper, or uneven flash lighting.
+
+function otsuThreshold(gray, size) {
+  const hist = new Uint32Array(256)
+  for (let i = 0; i < size; i++) hist[gray[i]]++
+
+  let sumAll = 0
+  for (let i = 0; i < 256; i++) sumAll += i * hist[i]
+
+  let sumB = 0, wB = 0, maxVar = 0, threshold = 128
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t]
+    if (!wB) continue
+    const wF = size - wB
+    if (!wF) break
+    sumB += t * hist[t]
+    const diff = sumB / wB - (sumAll - sumB) / wF
+    const v = wB * wF * diff * diff
+    if (v > maxVar) { maxVar = v; threshold = t }
+  }
+  return threshold
+}
+
 function preprocessForOCR(dataUrl) {
   return new Promise(resolve => {
     const img = new Image()
@@ -15,27 +39,22 @@ function preprocessForOCR(dataUrl) {
 
       const id = ctx.getImageData(0, 0, img.width, img.height)
       const d = id.data
-      const gray = new Uint8Array(img.width * img.height)
-      let lo = 255, hi = 0
+      const size = img.width * img.height
+      const gray = new Uint8Array(size)
 
-      // Pass 1: luminance → grayscale, find range
+      // Pass 1: luminance → grayscale
       for (let i = 0; i < d.length; i += 4) {
-        const g = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0
-        gray[i >> 2] = g
-        if (g < lo) lo = g
-        if (g > hi) hi = g
+        gray[i >> 2] = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) | 0
       }
 
-      // Pass 2: stretch to full 0-255 range and write back as greyscale
-      const span = hi - lo || 1
+      // Pass 2: Otsu threshold → pure black or white
+      const t = otsuThreshold(gray, size)
       for (let i = 0; i < d.length; i += 4) {
-        const v = (((gray[i >> 2] - lo) / span) * 255) | 0
+        const v = gray[i >> 2] > t ? 255 : 0
         d[i] = d[i + 1] = d[i + 2] = v
-        // d[i+3] (alpha) unchanged
       }
 
       ctx.putImageData(id, 0, 0)
-      // PNG keeps hard pixel edges; JPEG re-blurs them
       resolve(canvas.toDataURL('image/png'))
     }
     img.src = dataUrl

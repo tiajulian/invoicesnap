@@ -152,15 +152,47 @@ export default function AddInvoice({ onAdd }) {
         </div>
       )}
 
-      {/* Live camera */}
+      {/* Live camera with alignment guide */}
       {cameraActive && (
         <div className="space-y-3">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="w-full rounded-2xl border border-gray-200 bg-black"
-          />
+          <div className="relative rounded-2xl overflow-hidden bg-black">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full block"
+            />
+
+            {/* Dark vignette outside the guide zone */}
+            <div className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)`
+              }}
+            />
+
+            {/* Guide rectangle with corner brackets */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="relative w-[88%] h-[72%]">
+                {/* Corner L-shapes */}
+                {[
+                  'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-sm',
+                  'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-sm',
+                  'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-sm',
+                  'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-sm',
+                ].map((cls, i) => (
+                  <div key={i} className={`absolute w-7 h-7 border-white ${cls}`} />
+                ))}
+              </div>
+            </div>
+
+            {/* Tip text at the bottom of the video */}
+            <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-2 pointer-events-none">
+              <p className="text-white text-xs text-center">
+                Hold phone directly above the invoice • Fill the frame • Keep steady
+              </p>
+            </div>
+          </div>
+
           <div className="flex gap-3">
             <button
               onClick={capturePhoto}
