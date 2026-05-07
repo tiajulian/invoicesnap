@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import InvoiceCard from '../components/InvoiceCard'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const SORT_OPTIONS = [
   { value: 'createdAt_desc', label: 'Newest first' },
@@ -10,17 +11,33 @@ const SORT_OPTIONS = [
   { value: 'amount_asc',     label: 'Amount (lowest)' },
 ]
 
+// Improvement #9: heading text matches active filter
+const FILTER_LABELS = { all: 'All Invoices', paid: 'Paid Invoices', unpaid: 'Unpaid Invoices' }
+
 export default function InvoiceList({ invoices, onToggleStatus }) {
   const navigate = useNavigate()
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('createdAt_desc')
+  const [search, setSearch] = useState('') // Improvement #12
 
-  const filtered = invoices.filter(inv => filter === 'all' || inv.status === filter)
+  // Improvement #9 + #14
+  const heading = FILTER_LABELS[filter]
+  usePageTitle(heading)
+
+  const filtered = invoices
+    .filter(inv => filter === 'all' || inv.status === filter)
+    // Improvement #12: vendor name search
+    .filter(inv =>
+      !search.trim() ||
+      (inv.vendor || '').toLowerCase().includes(search.trim().toLowerCase()) ||
+      (inv.invoiceNumber || '').toLowerCase().includes(search.trim().toLowerCase()),
+    )
 
   const sorted = [...filtered].sort((a, b) => {
     const [field, dir] = sort.split('_')
-    let aVal = field === 'amount' ? parseFloat(a[field] || 0) : (a[field] || '')
-    let bVal = field === 'amount' ? parseFloat(b[field] || 0) : (b[field] || '')
+    // Bug #5: amounts are already floats; parse defensively anyway
+    const aVal = field === 'amount' ? (parseFloat(a[field]) || 0) : (a[field] || '')
+    const bVal = field === 'amount' ? (parseFloat(b[field]) || 0) : (b[field] || '')
     if (aVal < bVal) return dir === 'asc' ? -1 : 1
     if (aVal > bVal) return dir === 'asc' ? 1 : -1
     return 0
@@ -28,9 +45,9 @@ export default function InvoiceList({ invoices, onToggleStatus }) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-      {/* Header */}
+      {/* Header — Improvement #9: title reflects active filter */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">All Invoices</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{heading}</h1>
         <button
           onClick={() => navigate('/add')}
           className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
@@ -39,7 +56,16 @@ export default function InvoiceList({ invoices, onToggleStatus }) {
         </button>
       </div>
 
-      {/* Filters */}
+      {/* Improvement #12: vendor / invoice-number search bar */}
+      <input
+        type="search"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search by vendor or invoice number…"
+        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+
+      {/* Filter + sort row */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
           {['all', 'paid', 'unpaid'].map(f => (
@@ -72,7 +98,9 @@ export default function InvoiceList({ invoices, onToggleStatus }) {
 
       {/* List */}
       {sorted.length === 0 ? (
-        <p className="text-center text-gray-400 py-16">No invoices match this filter.</p>
+        <p className="text-center text-gray-400 py-16">
+          {search ? `No invoices match "${search}".` : 'No invoices match this filter.'}
+        </p>
       ) : (
         <div className="space-y-3">
           {sorted.map(inv => (

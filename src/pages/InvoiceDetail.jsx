@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import StatusChip from '../components/StatusChip'
-import { formatCurrency } from '../utils/currency'
-import { CURRENCIES } from '../utils/currency'
+import { formatCurrency, CURRENCIES } from '../utils/currency'
+import { formatDate } from '../utils/dateFormat'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleStatus }) {
   const { id } = useParams()
@@ -10,6 +11,9 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
   const invoice = invoices.find(inv => inv.id === id)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(invoice ?? {})
+
+  // Improvement #14: dynamic page title
+  usePageTitle(invoice ? (invoice.vendor || 'Invoice Detail') : 'Not Found')
 
   if (!invoice) {
     return (
@@ -35,6 +39,7 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
     setEditing(false)
   }
 
+  // Bug #1: confirmation dialog is present (window.confirm)
   function handleDelete() {
     if (window.confirm('Delete this invoice? This cannot be undone.')) {
       onDelete(invoice.id)
@@ -46,7 +51,14 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-700 text-xl">←</button>
+        {/* Bug #8: aria-label on back button */}
+        <button
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          className="text-gray-400 hover:text-gray-700 text-xl"
+        >
+          ←
+        </button>
         <h1 className="text-xl font-bold text-gray-900 flex-1 truncate">
           {invoice.vendor || 'Invoice Detail'}
         </h1>
@@ -65,23 +77,28 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
       {/* View or Edit */}
       {editing ? (
         <div className="space-y-4">
-          <EField label="Vendor" value={form.vendor} onChange={field('vendor')} />
-          <EField label="Invoice Number" value={form.invoiceNumber} onChange={field('invoiceNumber')} />
+          <EField label="Vendor" value={form.vendor} onChange={field('vendor')} placeholder="e.g. Acme Corp" />
+          <EField label="Invoice Number" value={form.invoiceNumber} onChange={field('invoiceNumber')} placeholder="e.g. INV-0042" />
           <div className="grid grid-cols-2 gap-4">
-            <EField label="Amount" value={form.amount} onChange={field('amount')} type="number" />
+            {/* Bug #2: min="0" in edit form */}
+            <EField label="Amount" value={form.amount} onChange={field('amount')} type="number" min="0" step="0.01" placeholder="0.00" />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+              {/* Bug #6: show full currency names, matching the Add form */}
               <select
                 value={form.currency || 'USD'}
                 onChange={e => field('currency')(e.target.value)}
                 className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
-                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+                {CURRENCIES.map(c => (
+                  <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
+                ))}
               </select>
             </div>
           </div>
           <EField label="Due Date" value={form.dueDate} onChange={field('dueDate')} type="date" />
-          <EField label="Notes" value={form.notes} onChange={field('notes')} />
+          {/* Bug #7: notes field has placeholder in edit mode */}
+          <EField label="Notes" value={form.notes} onChange={field('notes')} placeholder="Optional notes…" />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
@@ -123,9 +140,15 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
             <Row label="Vendor" value={invoice.vendor} />
             <Row label="Invoice #" value={invoice.invoiceNumber} />
             <Row label="Amount" value={formatCurrency(invoice.amount, invoice.currency)} />
-            <Row label="Due Date" value={invoice.dueDate} />
+            {/* Improvement #10: show currency in detail view */}
+            {invoice.currency && invoice.currency !== 'USD' && (
+              <Row label="Currency" value={`${invoice.currency} — ${CURRENCIES.find(c => c.code === invoice.currency)?.label ?? invoice.currency}`} />
+            )}
+            {/* Bug #4: format due date consistently */}
+            <Row label="Due Date" value={formatDate(invoice.dueDate)} />
             <Row label="Status" value={invoice.status === 'paid' ? '✓ Paid' : '⏳ Unpaid'} />
-            <Row label="Added" value={new Date(invoice.createdAt).toLocaleDateString()} />
+            {/* Added date also formatted via toLocaleDateString for consistency */}
+            <Row label="Added" value={new Date(invoice.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} />
             {invoice.notes && <Row label="Notes" value={invoice.notes} />}
           </div>
 
@@ -159,13 +182,17 @@ function Row({ label, value }) {
   )
 }
 
-function EField({ label, value, onChange, type = 'text' }) {
+// Bug #7: added placeholder prop to EField
+function EField({ label, value, onChange, type = 'text', placeholder, min, step }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <input
         type={type}
         value={value ?? ''}
+        min={min}
+        step={step}
+        placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
       />

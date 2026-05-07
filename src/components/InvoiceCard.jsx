@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import StatusChip from './StatusChip'
 import { formatCurrency } from '../utils/currency'
+import { formatDate } from '../utils/dateFormat'
 
 export default function InvoiceCard({ invoice, onToggleStatus }) {
   const navigate = useNavigate()
@@ -13,7 +14,7 @@ export default function InvoiceCard({ invoice, onToggleStatus }) {
       {invoice.image ? (
         <img
           src={invoice.image}
-          alt="invoice"
+          alt="invoice thumbnail"
           className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-gray-100"
         />
       ) : (
@@ -28,19 +29,18 @@ export default function InvoiceCard({ invoice, onToggleStatus }) {
         <p className="text-sm text-gray-500 truncate">
           {invoice.invoiceNumber ? `#${invoice.invoiceNumber}` : 'No invoice number'}
         </p>
+        {/* Bug #4: format due date consistently */}
         {invoice.dueDate && (
-          <p className="text-xs text-gray-400 mt-0.5">Due {invoice.dueDate}</p>
+          <p className="text-xs text-gray-400 mt-0.5">Due {formatDate(invoice.dueDate)}</p>
         )}
       </div>
 
-      {/* Amount + status */}
-      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+      {/* Amount + status — Improvement #16: group hint on hover */}
+      <div className="flex flex-col items-end gap-1.5 flex-shrink-0 group">
         <span className="font-bold text-gray-900 tabular-nums">
           {formatCurrency(invoice.amount, invoice.currency)}
         </span>
-        <span
-          onClick={e => { e.stopPropagation(); onToggleStatus(invoice.id) }}
-        >
+        <span onClick={e => { e.stopPropagation(); onToggleStatus(invoice.id) }}>
           <StatusChip status={invoice.status} />
         </span>
       </div>

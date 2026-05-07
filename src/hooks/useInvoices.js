@@ -7,6 +7,12 @@ function uid() {
     : Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
+// Bug #5: always coerce amount to a float so numeric sorting is correct
+function normalizeAmount(raw) {
+  const n = parseFloat(raw)
+  return isNaN(n) ? 0 : Math.max(0, n)
+}
+
 export function useInvoices() {
   const [invoices, setInvoices] = useState(() => loadInvoices())
 
@@ -17,6 +23,7 @@ export function useInvoices() {
       status: 'unpaid',
       currency: 'USD',
       ...data,
+      amount: normalizeAmount(data.amount),
     }
     setInvoices(prev => {
       const next = [invoice, ...prev]
@@ -28,7 +35,11 @@ export function useInvoices() {
 
   const updateInvoice = useCallback((id, updates) => {
     setInvoices(prev => {
-      const next = prev.map(inv => (inv.id === id ? { ...inv, ...updates } : inv))
+      const normalized = {
+        ...updates,
+        ...(updates.amount !== undefined && { amount: normalizeAmount(updates.amount) }),
+      }
+      const next = prev.map(inv => (inv.id === id ? { ...inv, ...normalized } : inv))
       saveInvoices(next)
       return next
     })
