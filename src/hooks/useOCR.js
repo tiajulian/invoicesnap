@@ -70,14 +70,20 @@ CRITICAL RULES:
 
   const data = await res.json()
 
-  // 2.5-flash is a thinking model — parts may include thought parts and answer parts
   const parts = data.candidates?.[0]?.content?.parts ?? []
-  const raw = parts.filter(p => !p.thought).map(p => p.text).join('') || '{}'
-  const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0] ?? '{}'
+
+  // Combine ALL parts (thought + non-thought) — 2.5-flash sometimes puts
+  // the final answer inside a thought part.
+  const allText = parts.map(p => p.text || '').join('\n')
+
+  // Strip markdown fences (Gemini often wraps JSON in ```json ... ```)
+  // then grab the first complete JSON object with a greedy match.
+  const stripped = allText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '')
+  const jsonStr = stripped.match(/\{[\s\S]*\}/)?.[0] ?? '{}'
 
   // Debug — visible in browser DevTools > Console
-  console.log('[InvoiceSnap OCR] Raw Gemini text:', raw)
-  console.log('[InvoiceSnap OCR] Extracted JSON string:', jsonStr)
+  console.log('[InvoiceSnap OCR] Stripped text:', stripped.slice(0, 500))
+  console.log('[InvoiceSnap OCR] Extracted JSON:', jsonStr)
 
   const parsed = JSON.parse(jsonStr)
   console.log('[InvoiceSnap OCR] Parsed fields:', parsed)
