@@ -72,20 +72,35 @@ CRITICAL RULES:
 
   const parts = data.candidates?.[0]?.content?.parts ?? []
 
-  // Combine ALL parts (thought + non-thought) — 2.5-flash sometimes puts
-  // the final answer inside a thought part.
+  // Combine ALL parts (thought + non-thought) then strip markdown fences.
   const allText = parts.map(p => p.text || '').join('\n')
+    .replace(/```(?:json)?\s*/gi, '').replace(/```/g, '')
 
-  // Strip markdown fences (Gemini often wraps JSON in ```json ... ```)
-  // then grab the first complete JSON object with a greedy match.
-  const stripped = allText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '')
-  const jsonStr = stripped.match(/\{[\s\S]*\}/)?.[0] ?? '{}'
+  // Bracket-match: find every valid top-level JSON object in the text.
+  // Using regex risks grabbing across {curly} prose — this is exact.
+  function extractAllJSON(text) {
+    const results = []
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] !== '{') continue
+      let depth = 0, j = i
+      for (; j < text.length; j++) {
+        if (text[j] === '{') depth++
+        else if (text[j] === '}') { if (--depth === 0) break }
+      }
+      if (depth === 0) {
+        try { results.push(JSON.parse(text.slice(i, j + 1))) } catch {}
+      }
+    }
+    return results
+  }
 
-  // Debug — visible in browser DevTools > Console
-  console.log('[InvoiceSnap OCR] Stripped text:', stripped.slice(0, 500))
-  console.log('[InvoiceSnap OCR] Extracted JSON:', jsonStr)
+  const candidates = extractAllJSON(allText)
+  // Use the LAST valid JSON object — final answer, not intermediate thinking
+  const parsed = candidates.length > 0 ? candidates[candidates.length - 1] : {}
 
-  const parsed = JSON.parse(jsonStr)
+  console.log('[InvoiceSnap OCR] Text sample:', allText.slice(0, 300))
+  console.log('[InvoiceSnap OCR] JSON candidates found:', candidates.length)
+  console.log('[InvoiceSnap OCR] Final parsed:', parsed)
   console.log('[InvoiceSnap OCR] Parsed fields:', parsed)
 
   for (const key of ['amount', 'subtotal', 'gst']) {
