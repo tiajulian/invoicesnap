@@ -9,12 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.2.0",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.27.0",
-    "tesseract.js": "^5.1.1"
+    "react-router-dom": "^6.27.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.3",
