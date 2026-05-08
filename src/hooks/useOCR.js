@@ -19,28 +19,41 @@ async function extractWithGemini(imageDataUrl, onProgress) {
         parts: [
           { inline_data: { mime_type: mimeType, data: b64 } },
           {
-            text: `Extract data from this invoice image. Return ONLY a JSON object — no markdown, no explanation.
+            text: `You are extracting structured data from an invoice image. Return ONLY valid JSON — no markdown fences, no explanation, nothing else.
 
+Required JSON shape (use only the fields you can read clearly):
 {
-  "vendor": "company name issuing this invoice (the supplier/seller, NOT the customer/bill-to)",
-  "invoiceNumber": "invoice or reference number as a string",
-  "subtotal": 253.40,
-  "gst": 1.93,
-  "amount": 256.40,
-  "dueDate": "YYYY-MM-DD",
-  "currency": "3-letter ISO code e.g. AUD USD EUR GBP"
+  "vendor": "<company name of the SELLER / SUPPLIER — not the customer or bill-to>",
+  "invoiceNumber": "<invoice or reference number as a string>",
+  "subtotal": <number>,
+  "gst": <number>,
+  "amount": <number>,
+  "dueDate": "<YYYY-MM-DD>",
+  "currency": "<3-letter ISO code — e.g. AUD, USD, EUR, GBP>"
 }
 
-Rules for subtotal and gst:
-- If the invoice shows a SEPARATE GST / tax line:
-    subtotal = the amount before GST (labelled "Sub Total", "Subtotal", "Net", etc.)
-    gst      = the GST / tax amount only (labelled "GST", "*GST", "Tax", "VAT", etc.)
-    amount   = the final total including GST
-- If the invoice has NO separate GST line:
-    subtotal = same value as amount (the total IS the subtotal)
-    omit gst entirely
-    amount   = the total
-- Omit any other field you cannot confidently determine`,
+HOW TO FIND subtotal AND gst:
+
+CASE 1 — Invoice has a separate tax line (GST / VAT / Tax):
+  Look for any of these labels near a dollar amount:
+    GST, *GST, G.S.T., GST 10%, Tax, VAT, Sales Tax
+  The asterisk (*) before GST is very common on Australian invoices — treat "*GST $1.93" as gst = 1.93.
+  Set:
+    subtotal = the amount BEFORE tax (often labelled Sub Total, Subtotal, Net, Net Amount, Ex GST)
+    gst      = the tax line amount ONLY
+    amount   = the final grand total INCLUDING tax
+
+CASE 2 — Invoice has NO separate tax line:
+  Set:
+    subtotal = same number as amount
+    amount   = the grand total
+    *** omit gst entirely — do NOT include it ***
+
+CRITICAL RULES:
+- Never guess or invent a GST amount
+- If you see a line that says "*GST" or "GST" with a dollar value next to it, that IS the gst field
+- amount must always be the largest / final total on the invoice
+- Omit any field you cannot read with confidence`,
           },
         ],
       }],

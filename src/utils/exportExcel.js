@@ -43,7 +43,7 @@ export async function exportToExcel(invoices) {
   wb.created = new Date()
 
   const ws = wb.addWorksheet('Invoices', {
-    views: [{ state: 'frozen', ySplit: 9 }],
+    views: [{ state: 'frozen', ySplit: 10 }], // freeze above row 10 (data starts row 10)
   })
 
   ws.columns = [
@@ -83,35 +83,43 @@ export async function exportToExcel(invoices) {
 
   ws.getRow(2).height = 6
 
-  // ── Rows 3-7: Summary ─────────────────────────────────────────────────────
-  // Layout: A=label, B=count, C=Subtotal sum, D=GST sum, E=Total sum
+  // ── Rows 3-9: Summary ─────────────────────────────────────────────────────
+  // Row 3: "SUMMARY" title
+  // Row 4: column sub-headers (Count | Subtotal ex-GST | GST | Total inc-GST)
+  // Row 5: All Invoices
+  // Row 6: Paid
+  // Row 7: Unpaid
+
+  const paid   = invoices.filter(i => i.status === 'paid')
+  const unpaid = invoices.filter(i => i.status === 'unpaid')
+
   const summaryRows = [
-    { row: 3, isHeader: true },
-    { row: 4, label: 'All Invoices', count, subtotal: subtotalSum, gst: gstSum,  total: totalSum },
-    { row: 5, label: '✓ Paid',
-      count:    invoices.filter(i => i.status === 'paid').length,
-      subtotal: fmt(sumOf2(invoices.filter(i => i.status === 'paid'), 'subtotal')),
-      gst:      fmt(sumOf2(invoices.filter(i => i.status === 'paid'), 'gst')),
-      total:    fmt(sumOf2(invoices.filter(i => i.status === 'paid'), 'amount')),
+    { row: 3, isTitle: true },
+    { row: 4, isColHeader: true },
+    { row: 5, label: 'All Invoices',
+      count: count, subtotal: subtotalSum, gst: gstSum, total: totalSum },
+    { row: 6, label: '✓  Paid',
+      count: paid.length,
+      subtotal: fmt(sumOf2(paid, 'subtotal')),
+      gst: fmt(sumOf2(paid, 'gst')),
+      total: fmt(sumOf2(paid, 'amount')),
       color: 'paid' },
-    { row: 6, label: '⏳ Unpaid',
-      count:    invoices.filter(i => i.status === 'unpaid').length,
-      subtotal: fmt(sumOf2(invoices.filter(i => i.status === 'unpaid'), 'subtotal')),
-      gst:      fmt(sumOf2(invoices.filter(i => i.status === 'unpaid'), 'gst')),
-      total:    fmt(sumOf2(invoices.filter(i => i.status === 'unpaid'), 'amount')),
+    { row: 7, label: '⏳  Unpaid',
+      count: unpaid.length,
+      subtotal: fmt(sumOf2(unpaid, 'subtotal')),
+      gst: fmt(sumOf2(unpaid, 'gst')),
+      total: fmt(sumOf2(unpaid, 'amount')),
       color: 'unpaid' },
   ]
 
   for (const def of summaryRows) {
     const r = ws.getRow(def.row)
-    r.height = def.isHeader ? 16 : 20
 
-    // Fill all cells in summary background
-    for (let c = 1; c <= 9; c++) {
-      ws.getCell(def.row, c).fill = fill(C.summaryBg)
-    }
+    // Fill all 9 cells with summary background
+    for (let c = 1; c <= 9; c++) ws.getCell(def.row, c).fill = fill(C.summaryBg)
 
-    if (def.isHeader) {
+    if (def.isTitle) {
+      r.height = 16
       const cell = ws.getCell(`A${def.row}`)
       cell.value = 'SUMMARY'
       cell.font  = { bold: true, size: 9, color: { argb: C.summaryLbl }, italic: true }
@@ -119,20 +127,39 @@ export async function exportToExcel(invoices) {
       continue
     }
 
+    if (def.isColHeader) {
+      r.height = 16
+      const cols = [
+        { col: 'A', label: '',                  align: 'left' },
+        { col: 'B', label: 'Count',             align: 'center' },
+        { col: 'C', label: 'Subtotal (ex-GST)', align: 'right' },
+        { col: 'D', label: 'GST',               align: 'right' },
+        { col: 'E', label: 'Total (inc-GST)',   align: 'right' },
+      ]
+      for (const { col, label, align } of cols) {
+        const cell = ws.getCell(`${col}${def.row}`)
+        cell.value     = label
+        cell.font      = { bold: true, size: 9, color: { argb: C.summaryLbl }, italic: true }
+        cell.alignment = { horizontal: align, indent: col === 'A' ? 1 : 0 }
+      }
+      continue
+    }
+
+    r.height = 20
     const fg = def.color === 'paid' ? C.paidFg : def.color === 'unpaid' ? C.unpaidFg : C.summaryFg
 
     styleCell(ws.getCell(`A${def.row}`), def.label, fg, { bold: true, indent: 1 })
-    styleCell(ws.getCell(`B${def.row}`), def.count, fg, { bold: true, center: true })
+    styleCell(ws.getCell(`B${def.row}`), def.count,    fg, { bold: true, center: true })
     styleNumCell(ws.getCell(`C${def.row}`), def.subtotal, fg)
-    styleNumCell(ws.getCell(`D${def.row}`), def.gst > 0 ? def.gst : '', fg)  // blank if no GST
+    styleNumCell(ws.getCell(`D${def.row}`), def.gst > 0 ? def.gst : '—', fg)
     styleNumCell(ws.getCell(`E${def.row}`), def.total, fg)
   }
 
-  ws.getRow(7).height = 6
   ws.getRow(8).height = 6
+  ws.getRow(9).height = 6
 
-  // ── Row 9: Column headers ─────────────────────────────────────────────────
-  const hdr = ws.getRow(9)
+  // ── Row 10: Column headers ────────────────────────────────────────────────
+  const hdr = ws.getRow(10)
   hdr.height = 22
   HEADERS.forEach((h, i) => {
     const cell = hdr.getCell(i + 1)
@@ -147,12 +174,12 @@ export async function exportToExcel(invoices) {
     }
   })
 
-  // ── Rows 10+: Data ────────────────────────────────────────────────────────
+  // ── Rows 11+: Data ────────────────────────────────────────────────────────
   invoices.forEach((inv, idx) => {
     const isPaid  = inv.status === 'paid'
     const isZebra = idx % 2 === 1
     const rowBg   = isPaid ? C.paidBg : isZebra ? C.altRow : C.white
-    const r       = ws.getRow(10 + idx)
+    const r       = ws.getRow(11 + idx)
     r.height      = 18
 
     const values = [
@@ -184,7 +211,7 @@ export async function exportToExcel(invoices) {
   })
 
   // Auto-filter on header row
-  ws.autoFilter = { from: 'A9', to: `I${9 + invoices.length}` }
+  ws.autoFilter = { from: 'A10', to: `I${10 + invoices.length}` }
 
   // Download
   const buffer = await wb.xlsx.writeBuffer()
