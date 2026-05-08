@@ -3,6 +3,14 @@ import { loadInvoices, saveInvoices } from '../utils/storage'
 import { exportToExcel } from '../utils/exportExcel'
 import { getDefaultCurrency } from '../utils/settings'
 
+// A value is "present" if it is a non-empty string, a finite number, etc.
+// This is stricter than !== '' because it also handles undefined and NaN.
+function hasValue(v) {
+  if (v === undefined || v === null || v === '') return false
+  const n = parseFloat(v)
+  return !isNaN(n)
+}
+
 function uid() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -26,14 +34,12 @@ export function useInvoices() {
       currency: getDefaultCurrency(),
       ...data,
       amount:   normalizeAmount(data.amount),
-      // subtotal always populated: use the entered value, or fall back to amount when no GST breakdown
-      subtotal: (data.subtotal !== '' && data.subtotal !== undefined)
+      // subtotal: use extracted/entered value; fall back to amount when absent
+      subtotal: hasValue(data.subtotal)
         ? normalizeAmount(data.subtotal)
         : normalizeAmount(data.amount),
-      // gst only set when explicitly provided
-      gst: (data.gst !== '' && data.gst !== undefined)
-        ? normalizeAmount(data.gst)
-        : undefined,
+      // gst: only save when a real value was provided (not blank/undefined)
+      gst: hasValue(data.gst) ? normalizeAmount(data.gst) : undefined,
     }
     setInvoices(prev => {
       const next = [invoice, ...prev]

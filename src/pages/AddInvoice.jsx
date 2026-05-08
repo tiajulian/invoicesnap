@@ -122,6 +122,8 @@ export default function AddInvoice({ onAdd }) {
         onAdd({
           vendor:        extracted.vendor        || valid[i].name.replace(/\.[^.]+$/, ''),
           invoiceNumber: extracted.invoiceNumber || '',
+          subtotal:      extracted.subtotal,
+          gst:           extracted.gst,
           amount:        extracted.amount        || '',
           dueDate:       extracted.dueDate       || '',
           currency:      extracted.currency      || getDefaultCurrency(),
