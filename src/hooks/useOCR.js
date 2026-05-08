@@ -33,8 +33,7 @@ Omit any field you cannot confidently determine. For amount use the final Total,
           },
         ],
       }],
-      generationConfig: { temperature: 0, maxOutputTokens: 300 },
-      thinkingConfig: { thinkingBudget: 0 },
+      generationConfig: { temperature: 0, maxOutputTokens: 1024 },
     }),
   })
 
