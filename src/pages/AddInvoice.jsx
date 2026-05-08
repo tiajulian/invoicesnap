@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOCR } from '../hooks/useOCR'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -45,6 +45,16 @@ export default function AddInvoice({ onAdd }) {
   const videoRef  = useRef(null)
   const streamRef = useRef(null)
 
+  // Attach stream once the <video> element is in the DOM.
+  // requestAnimationFrame isn't reliable on mobile — React may not have
+  // committed the render yet when it fires.
+  useEffect(() => {
+    if (cameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current
+      videoRef.current.play().catch(() => {})
+    }
+  }, [cameraActive])
+
   const field = (key) => (val) => {
     setForm(f => ({ ...f, [key]: val }))
     if (key === 'vendor') setVendorError('')
@@ -86,11 +96,13 @@ export default function AddInvoice({ onAdd }) {
       })
       streamRef.current = stream
       setCameraActive(true)
-      requestAnimationFrame(() => {
-        if (videoRef.current) videoRef.current.srcObject = stream
-      })
-    } catch {
-      alert('Camera unavailable — please upload a file instead.')
+      // Stream is attached via the useEffect above once <video> renders
+    } catch (err) {
+      const msg =
+        err.name === 'NotAllowedError' ? 'Camera access was denied. Allow camera access in your browser settings and try again.' :
+        err.name === 'NotFoundError'   ? 'No camera found on this device.' :
+        'Camera unavailable — please upload a file instead.'
+      alert(msg)
     }
   }
 
@@ -188,7 +200,7 @@ export default function AddInvoice({ onAdd }) {
       {cameraActive && (
         <div className="space-y-3">
           <div className="relative rounded-2xl overflow-hidden bg-black">
-            <video ref={videoRef} autoPlay playsInline className="w-full block" />
+            <video ref={videoRef} autoPlay playsInline muted className="w-full block" />
             <div className="absolute inset-0 pointer-events-none"
               style={{ background: 'radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)' }}
             />
