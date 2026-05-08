@@ -12,7 +12,7 @@ const ALLOWED_ORIGINS = [
 ]
 
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 // Hard cap per IP address per day
 const MAX_PER_IP_PER_DAY = 50
