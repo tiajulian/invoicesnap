@@ -26,8 +26,14 @@ export function useInvoices() {
       currency: getDefaultCurrency(),
       ...data,
       amount:   normalizeAmount(data.amount),
-      subtotal: data.subtotal !== '' && data.subtotal !== undefined ? normalizeAmount(data.subtotal) : undefined,
-      gst:      data.gst      !== '' && data.gst      !== undefined ? normalizeAmount(data.gst)      : undefined,
+      // subtotal always populated: use the entered value, or fall back to amount when no GST breakdown
+      subtotal: (data.subtotal !== '' && data.subtotal !== undefined)
+        ? normalizeAmount(data.subtotal)
+        : normalizeAmount(data.amount),
+      // gst only set when explicitly provided
+      gst: (data.gst !== '' && data.gst !== undefined)
+        ? normalizeAmount(data.gst)
+        : undefined,
     }
     setInvoices(prev => {
       const next = [invoice, ...prev]
@@ -39,9 +45,18 @@ export function useInvoices() {
 
   const updateInvoice = useCallback((id, updates) => {
     setInvoices(prev => {
+      const amount = normalizeAmount(updates.amount)
       const normalized = {
         ...updates,
-        ...(updates.amount !== undefined && { amount: normalizeAmount(updates.amount) }),
+        amount,
+        // subtotal: use entered value or fall back to total
+        subtotal: (updates.subtotal !== '' && updates.subtotal !== undefined)
+          ? normalizeAmount(updates.subtotal)
+          : amount,
+        // gst: only set when explicitly provided
+        gst: (updates.gst !== '' && updates.gst !== undefined)
+          ? normalizeAmount(updates.gst)
+          : undefined,
       }
       const next = prev.map(inv => (inv.id === id ? { ...inv, ...normalized } : inv))
       saveInvoices(next)

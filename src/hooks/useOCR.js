@@ -31,11 +31,16 @@ async function extractWithGemini(imageDataUrl, onProgress) {
   "currency": "3-letter ISO code e.g. AUD USD EUR GBP"
 }
 
-Rules:
-- subtotal = amount before tax/GST (labelled "Sub Total", "Subtotal", "Net Amount", etc.)
-- gst = tax amount only (labelled "GST", "Tax", "VAT", etc.) — omit if not shown
-- amount = the final grand total including all taxes
-- Omit any field you cannot confidently determine`,
+Rules for subtotal and gst:
+- If the invoice shows a SEPARATE GST / tax line:
+    subtotal = the amount before GST (labelled "Sub Total", "Subtotal", "Net", etc.)
+    gst      = the GST / tax amount only (labelled "GST", "*GST", "Tax", "VAT", etc.)
+    amount   = the final total including GST
+- If the invoice has NO separate GST line:
+    subtotal = same value as amount (the total IS the subtotal)
+    omit gst entirely
+    amount   = the total
+- Omit any other field you cannot confidently determine`,
           },
         ],
       }],
