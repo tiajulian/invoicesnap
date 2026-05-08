@@ -1,24 +1,25 @@
 import { useState, useCallback } from 'react'
-import { getGeminiKey } from '../utils/ocrEngine'
 
-async function extractWithGemini(imageDataUrl, apiKey, onProgress) {
+const PROXY_URL = import.meta.env.VITE_OCR_PROXY_URL || ''
+
+async function extractWithGemini(imageDataUrl, onProgress) {
+  if (!PROXY_URL) throw new Error('OCR proxy not configured')
+
   onProgress(10)
 
   const match = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/)
   if (!match) throw new Error('Invalid image data')
   const [, mimeType, b64] = match
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mimeType, data: b64 } },
-            {
-              text: `Extract data from this invoice image. Return ONLY a JSON object — no markdown, no explanation.
+  const res = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: mimeType, data: b64 } },
+          {
+            text: `Extract data from this invoice image. Return ONLY a JSON object — no markdown, no explanation.
 
 {
   "vendor": "company name issuing this invoice (the supplier/seller, NOT the customer/bill-to)",
@@ -29,19 +30,18 @@ async function extractWithGemini(imageDataUrl, apiKey, onProgress) {
 }
 
 Omit any field you cannot confidently determine. For amount use the final Total, not Sub Total.`,
-            },
-          ],
-        }],
-        generationConfig: { temperature: 0, maxOutputTokens: 300 },
-      }),
-    },
-  )
+          },
+        ],
+      }],
+      generationConfig: { temperature: 0, maxOutputTokens: 300 },
+    }),
+  })
 
   onProgress(80)
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message || `Gemini API error ${res.status}`)
+    throw new Error(err.error?.message || `Gemini error ${res.status}`)
   }
 
   const data = await res.json()
@@ -66,15 +66,8 @@ export function useOCR() {
     setProgress(0)
     setError(null)
 
-    const apiKey = getGeminiKey()
-    if (!apiKey) {
-      setError('No Gemini API key configured. Go to Settings to add your key.')
-      setIsProcessing(false)
-      return {}
-    }
-
     try {
-      const result = await extractWithGemini(imageData, apiKey, setProgress)
+      const result = await extractWithGemini(imageData, setProgress)
       setProgress(100)
       return result
     } catch (err) {

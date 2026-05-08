@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { getGeminiKey } from '../utils/ocrEngine'
 
 const LINKS = [
   { to: '/',         label: 'Dashboard' },
@@ -9,7 +8,6 @@ const LINKS = [
 
 export default function Navbar() {
   const { pathname } = useLocation()
-  const hasKey = Boolean(getGeminiKey())
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
       <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
@@ -32,13 +30,10 @@ export default function Navbar() {
           ))}
           <Link
             to="/settings"
-            title={hasKey ? 'Settings — Gemini active' : 'Settings — API key required'}
             className={`ml-1 px-2.5 py-1.5 rounded-lg text-sm transition-colors ${
               pathname === '/settings'
                 ? 'bg-blue-50 text-blue-600'
-                : hasKey
-                ? 'text-blue-500 hover:bg-blue-50'
-                : 'text-amber-500 hover:bg-amber-50'
+                : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
             }`}
           >
             ⚙
