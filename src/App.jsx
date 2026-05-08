@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
+import BottomNav from './components/BottomNav'
 import Dashboard from './pages/Dashboard'
 import InvoiceList from './pages/InvoiceList'
 import AddInvoice from './pages/AddInvoice'
@@ -12,23 +13,20 @@ export default function App() {
 
   return (
     <HashRouter>
-      <div className="min-h-screen bg-gray-50">
+      {/* pb-20 on mobile gives space above the bottom nav bar */}
+      <div className="min-h-screen bg-slate-50 pb-20 sm:pb-0">
         <Navbar />
         <Routes>
-          <Route
-            path="/"
+          <Route path="/"
             element={<Dashboard invoices={invoices} onToggleStatus={toggleStatus} onExport={exportExcel} />}
           />
-          <Route
-            path="/invoices"
+          <Route path="/invoices"
             element={<InvoiceList invoices={invoices} onToggleStatus={toggleStatus} />}
           />
-          <Route
-            path="/add"
+          <Route path="/add"
             element={<AddInvoice onAdd={addInvoice} />}
           />
-          <Route
-            path="/invoice/:id"
+          <Route path="/invoice/:id"
             element={
               <InvoiceDetail
                 invoices={invoices}
@@ -40,6 +38,7 @@ export default function App() {
           />
           <Route path="/settings" element={<Settings />} />
         </Routes>
+        <BottomNav />
       </div>
     </HashRouter>
   )

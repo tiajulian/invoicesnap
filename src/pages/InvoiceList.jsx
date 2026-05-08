@@ -44,7 +44,7 @@ export default function InvoiceList({ invoices, onToggleStatus }) {
   })
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+    <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4">
       {/* Header — Improvement #9: title reflects active filter */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">{heading}</h1>

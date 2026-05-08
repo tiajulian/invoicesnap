@@ -19,7 +19,8 @@ export default function Navbar() {
           InvoiceSnap
         </Link>
 
-        <div className="flex gap-1 items-center">
+        {/* Desktop nav — hidden on mobile (bottom nav used instead) */}
+        <div className="hidden sm:flex gap-1 items-center">
           {LINKS.map(link => (
             <Link
               key={link.to}

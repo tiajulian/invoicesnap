@@ -35,7 +35,7 @@ export default function TotalBar({ invoices }) {
             </p>
             <span className="text-sm">{c.icon}</span>
           </div>
-          <p className="text-[28px] font-bold tabular-nums leading-none" style={{ color: c.value }}>
+          <p className="text-xl sm:text-[26px] font-bold tabular-nums leading-none truncate" style={{ color: c.value }}>
             {c.isCount ? values[c.key] : formatCurrency(values[c.key])}
           </p>
         </div>

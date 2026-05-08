@@ -8,10 +8,7 @@ export default function InvoiceCard({ invoice, onToggleStatus }) {
   return (
     <div
       onClick={() => navigate(`/invoice/${invoice.id}`)}
-      className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4 cursor-pointer transition-all"
-      style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)' }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05)'}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)'}
+      className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 cursor-pointer transition-shadow shadow-sm hover:shadow-md active:shadow-sm"
     >
       {/* Thumbnail */}
       {invoice.image ? (
