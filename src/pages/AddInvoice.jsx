@@ -257,7 +257,7 @@ export default function AddInvoice({ onAdd }) {
 
   // ── Single invoice view ─────────────────────────────────────────────────
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       {toast && (
         <div role="status" aria-live="polite" className="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50">
           <div className="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-xl">✓ {toast}</div>
@@ -271,7 +271,7 @@ export default function AddInvoice({ onAdd }) {
       </div>
 
       {!image && !cameraActive && (
-        <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center space-y-4 bg-gray-50">
+        <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center space-y-4 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/40 transition-colors">
           <p className="text-gray-400 text-sm">Capture or upload — Gemini AI will pre-fill the fields</p>
           <div className="flex gap-2 justify-center flex-wrap">
             <button type="button" onClick={startCamera}
@@ -352,7 +352,7 @@ export default function AddInvoice({ onAdd }) {
             <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
             <select id="currency" name="currency" value={form.currency}
               onChange={e => field('currency')(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
               {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.label}</option>)}
             </select>
           </div>
@@ -366,15 +366,15 @@ export default function AddInvoice({ onAdd }) {
           <textarea id="notes" name="notes" value={form.notes} rows={3}
             onChange={e => field('notes')(e.target.value)}
             placeholder="Optional notes…" autoComplete="off"
-            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none" />
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
           <div className="grid grid-cols-2 rounded-xl overflow-hidden border border-gray-200">
             {[
-              { value: 'unpaid', label: '⏳ Unpaid', active: 'bg-amber-500 text-white' },
-              { value: 'paid',   label: '✓ Paid',   active: 'bg-green-500 text-white' },
+              { value: 'unpaid', label: '⏳  Unpaid', active: 'bg-amber-500 text-white' },
+              { value: 'paid',   label: '✓  Paid',   active: 'bg-green-600 text-white' },
             ].map(s => (
               <button key={s.value} type="button" onClick={() => setStatus(s.value)}
                 className={`py-2.5 text-sm font-semibold transition-colors ${status === s.value ? s.active : 'bg-white text-gray-400 hover:bg-gray-50'}`}>
@@ -385,10 +385,13 @@ export default function AddInvoice({ onAdd }) {
         </div>
       </div>
 
-      <button type="button" onClick={handleSave} disabled={isProcessing}
-        className="w-full bg-blue-600 text-white py-3 rounded-2xl font-bold text-base hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm">
-        {isProcessing ? 'Scanning…' : 'Save Invoice'}
-      </button>
+      <div className="flex justify-center">
+        <button type="button" onClick={handleSave} disabled={isProcessing}
+          className="w-full max-w-sm bg-blue-600 text-white py-3 rounded-lg font-semibold text-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
+          style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+          {isProcessing ? 'Scanning…' : 'Save Invoice'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -399,8 +402,8 @@ function Field({ id, label, value, onChange, placeholder, type = 'text', min, st
       <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <input id={id} name={id} type={type} value={value} min={min} step={step} autoComplete={autoComplete}
         onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
-          error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300 focus:ring-blue-400'
+        className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
+          error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-slate-300 focus:ring-blue-600'
         }`} />
       {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
     </div>

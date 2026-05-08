@@ -1,49 +1,40 @@
 import { Link, useLocation } from 'react-router-dom'
+import { Receipt } from 'lucide-react'
 
 const LINKS = [
   { to: '/',         label: 'Dashboard' },
   { to: '/invoices', label: 'Invoices' },
+  { to: '/settings', label: 'Settings' },
 ]
 
 export default function Navbar() {
   const { pathname } = useLocation()
-
-  function isActive(to) {
-    return pathname === to
-  }
-
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-      <div className="max-w-3xl mx-auto px-4 flex items-center justify-between h-14">
-        <Link to="/" className="font-extrabold text-blue-600 text-xl tracking-tight">
-          🧾 InvoiceSnap
+    <nav className="bg-white sticky top-0 z-10"
+      style={{ boxShadow: '0 1px 0 #E2E8F0, 0 1px 4px rgba(0,0,0,0.06)' }}>
+      <div className="max-w-5xl mx-auto px-4 flex items-center justify-between h-14">
+
+        <Link to="/" className="flex items-center gap-2 font-bold text-blue-600 text-lg tracking-tight">
+          <Receipt className="w-5 h-5" />
+          InvoiceSnap
         </Link>
+
         <div className="flex gap-1 items-center">
           {LINKS.map(link => (
             <Link
               key={link.to}
               to={link.to}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(link.to)
+                pathname === link.to
                   ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {link.label}
             </Link>
           ))}
-          <Link
-            to="/settings"
-            title="Settings"
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              isActive('/settings')
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            ⚙ Settings
-          </Link>
         </div>
+
       </div>
     </nav>
   )

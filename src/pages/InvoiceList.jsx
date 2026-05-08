@@ -12,7 +12,7 @@ const SORT_OPTIONS = [
 ]
 
 // Improvement #9: heading text matches active filter
-const FILTER_LABELS = { all: 'All Invoices', paid: 'Paid Invoices', unpaid: 'Unpaid Invoices' }
+const FILTER_LABELS = { all: 'Invoices', paid: 'Paid Invoices', unpaid: 'Unpaid Invoices' }
 
 export default function InvoiceList({ invoices, onToggleStatus }) {
   const navigate = useNavigate()
@@ -44,7 +44,7 @@ export default function InvoiceList({ invoices, onToggleStatus }) {
   })
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
       {/* Header — Improvement #9: title reflects active filter */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">{heading}</h1>

@@ -25,7 +25,7 @@ export default function Settings() {
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => navigate(-1)} aria-label="Go back" title="Go back"
           className="text-gray-400 hover:text-gray-700 text-xl">←</button>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Settings</h1>
       </div>
 
       {/* Default currency */}
@@ -81,6 +81,10 @@ export default function Settings() {
           For sensitive financial records, be aware that localStorage is not encrypted. Anyone with physical access to this device can read your invoice data via browser DevTools.
         </p>
       </div>
+
+      <p className="text-center text-xs text-slate-400 pt-2">
+        InvoiceSnap · Powered by Google Gemini · All data stored locally
+      </p>
     </div>
   )
 }

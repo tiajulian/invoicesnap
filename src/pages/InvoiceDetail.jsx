@@ -97,7 +97,7 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
                 id="currency" name="currency"
                 value={form.currency || 'AUD'}
                 onChange={e => field('currency')(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
               >
                 {CURRENCIES.map(c => (
                   <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
@@ -223,8 +223,8 @@ function EField({ id, label, value, onChange, type = 'text', placeholder, min, s
         placeholder={placeholder}
         autoComplete={autoComplete}
         onChange={e => onChange(e.target.value)}
-        className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
-          error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300 focus:ring-blue-400'
+        className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
+          error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300 focus:ring-blue-600'
         }`}
       />
       {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
