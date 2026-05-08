@@ -24,12 +24,18 @@ async function extractWithGemini(imageDataUrl, onProgress) {
 {
   "vendor": "company name issuing this invoice (the supplier/seller, NOT the customer/bill-to)",
   "invoiceNumber": "invoice or reference number as a string",
-  "amount": 123.45,
+  "subtotal": 253.40,
+  "gst": 1.93,
+  "amount": 256.40,
   "dueDate": "YYYY-MM-DD",
   "currency": "3-letter ISO code e.g. AUD USD EUR GBP"
 }
 
-Omit any field you cannot confidently determine. For amount use the final Total, not Sub Total.`,
+Rules:
+- subtotal = amount before tax/GST (labelled "Sub Total", "Subtotal", "Net Amount", etc.)
+- gst = tax amount only (labelled "GST", "Tax", "VAT", etc.) — omit if not shown
+- amount = the final grand total including all taxes
+- Omit any field you cannot confidently determine`,
           },
         ],
       }],
@@ -51,8 +57,11 @@ Omit any field you cannot confidently determine. For amount use the final Total,
   const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0] ?? '{}'
   const parsed = JSON.parse(jsonStr)
 
-  if (parsed.amount !== undefined) {
-    parsed.amount = Math.max(0, parseFloat(parsed.amount) || 0)
+  for (const key of ['amount', 'subtotal', 'gst']) {
+    if (parsed[key] !== undefined) {
+      const n = parseFloat(parsed[key])
+      parsed[key] = isNaN(n) ? undefined : Math.max(0, n)
+    }
   }
 
   return parsed

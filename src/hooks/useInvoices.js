@@ -25,7 +25,9 @@ export function useInvoices() {
       status: 'unpaid',
       currency: getDefaultCurrency(),
       ...data,
-      amount: normalizeAmount(data.amount),
+      amount:   normalizeAmount(data.amount),
+      subtotal: data.subtotal !== '' && data.subtotal !== undefined ? normalizeAmount(data.subtotal) : undefined,
+      gst:      data.gst      !== '' && data.gst      !== undefined ? normalizeAmount(data.gst)      : undefined,
     }
     setInvoices(prev => {
       const next = [invoice, ...prev]

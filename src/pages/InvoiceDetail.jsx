@@ -89,7 +89,11 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
           <EField id="vendor" label="Vendor" autoComplete="organization" value={form.vendor} onChange={field('vendor')} placeholder="e.g. Acme Corp" />
           <EField id="invoiceNumber" label="Invoice Number" autoComplete="off" value={form.invoiceNumber} onChange={field('invoiceNumber')} placeholder="e.g. INV-0042" />
           <div className="grid grid-cols-2 gap-4">
-            <EField id="amount" label="Amount" autoComplete="off" value={form.amount} onChange={field('amount')} type="number" min="0" step="0.01" placeholder="0.00" error={amountError} />
+            <EField id="subtotal" label="Subtotal (ex-GST)" autoComplete="off" value={form.subtotal ?? ''} onChange={field('subtotal')} type="number" min="0" step="0.01" placeholder="0.00" />
+            <EField id="gst" label="GST" autoComplete="off" value={form.gst ?? ''} onChange={field('gst')} type="number" min="0" step="0.01" placeholder="optional" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <EField id="amount" label="Total (inc-GST)" autoComplete="off" value={form.amount} onChange={field('amount')} type="number" min="0" step="0.01" placeholder="0.00" error={amountError} />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
               {/* Bug #6: show full currency names, matching the Add form */}
@@ -164,7 +168,9 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
           <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100">
             <Row label="Vendor" value={invoice.vendor} />
             <Row label="Invoice #" value={invoice.invoiceNumber} />
-            <Row label="Amount" value={formatCurrency(invoice.amount, invoice.currency)} />
+            {invoice.subtotal !== undefined && <Row label="Subtotal (ex-GST)" value={formatCurrency(invoice.subtotal, invoice.currency)} />}
+            {invoice.gst      !== undefined && <Row label="GST"              value={formatCurrency(invoice.gst,      invoice.currency)} />}
+            <Row label="Total (inc-GST)" value={formatCurrency(invoice.amount, invoice.currency)} />
             {/* Improvement #10: show currency in detail view */}
             {invoice.currency && invoice.currency !== 'AUD' && (
               <Row label="Currency" value={`${invoice.currency} — ${CURRENCIES.find(c => c.code === invoice.currency)?.label ?? invoice.currency}`} />

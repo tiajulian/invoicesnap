@@ -44,13 +44,15 @@ export async function exportToExcel(invoices) {
 
   // ── Column widths ──────────────────────────────────────────────────────
   ws.columns = [
-    { key: 'vendor',        width: 30 },
-    { key: 'invoiceNumber', width: 18 },
+    { key: 'vendor',        width: 28 },
+    { key: 'invoiceNumber', width: 16 },
+    { key: 'subtotal',      width: 14 },
+    { key: 'gst',           width: 10 },
     { key: 'amount',        width: 14 },
-    { key: 'currency',      width: 11 },
-    { key: 'dueDate',       width: 15 },
-    { key: 'dateAdded',     width: 15 },
-    { key: 'status',        width: 12 },
+    { key: 'currency',      width: 10 },
+    { key: 'dueDate',       width: 14 },
+    { key: 'dateAdded',     width: 14 },
+    { key: 'status',        width: 10 },
   ]
 
   // ── Row 1: Title bar ───────────────────────────────────────────────────
@@ -131,7 +133,7 @@ export async function exportToExcel(invoices) {
   ws.getRow(8).height = 6
 
   // ── Row 9: Column headers ──────────────────────────────────────────────
-  const HEADERS = ['Vendor', 'Invoice #', 'Amount', 'Currency', 'Due Date', 'Date Added', 'Status']
+  const HEADERS = ['Vendor', 'Invoice #', 'Subtotal (ex-GST)', 'GST', 'Total (inc-GST)', 'Currency', 'Due Date', 'Date Added', 'Status']
   const hdr = ws.getRow(9)
   hdr.height = 22
   HEADERS.forEach((h, i) => {
@@ -162,6 +164,8 @@ export async function exportToExcel(invoices) {
     const values = [
       inv.vendor        || '',
       inv.invoiceNumber || '',
+      inv.subtotal !== undefined ? parseFloat(inv.subtotal) : '',
+      inv.gst      !== undefined ? parseFloat(inv.gst)      : '',
       parseFloat(inv.amount) || 0,
       inv.currency      || 'AUD',
       inv.dueDate ? formatDate(inv.dueDate) : '',
@@ -177,16 +181,17 @@ export async function exportToExcel(invoices) {
       cell.fill   = fill(rowBg)
       cell.border = border()
       cell.font   = { color: { argb: col === 6 ? rowFg : 'FF374151' } }
+      // cols 2,3,4 = Subtotal, GST, Total  |  col 8 = Status
       cell.alignment = {
         vertical: 'middle',
-        horizontal: col === 2 || col === 6 ? 'right' : col === 3 ? 'center' : 'left',
+        horizontal: [2, 3, 4, 8].includes(col) ? 'right' : col === 5 ? 'center' : 'left',
         indent: col === 0 ? 1 : 0,
       }
 
-      if (col === 2) cell.numFmt = '#,##0.00'
+      if ([2, 3, 4].includes(col) && val !== '') cell.numFmt = '#,##0.00'
 
       // Status cell — badge style
-      if (col === 6) {
+      if (col === 8) {
         cell.fill = fill(isPaid ? C.paidBadge : C.unpaidBadge)
         cell.font = { bold: true, color: { argb: rowFg } }
         cell.alignment = { horizontal: 'center', vertical: 'middle' }

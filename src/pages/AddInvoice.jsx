@@ -7,7 +7,7 @@ import { CURRENCIES } from '../utils/currency'
 import { getDefaultCurrency } from '../utils/settings'
 
 function makeBlank() {
-  return { vendor: '', invoiceNumber: '', amount: '', dueDate: '', currency: getDefaultCurrency(), notes: '' }
+  return { vendor: '', invoiceNumber: '', subtotal: '', gst: '', amount: '', dueDate: '', currency: getDefaultCurrency(), notes: '' }
 }
 
 function readFileAsDataUrl(file) {
@@ -345,8 +345,15 @@ export default function AddInvoice({ onAdd }) {
         <Field id="invoiceNumber" label="Invoice Number" autoComplete="off"
           value={form.invoiceNumber} onChange={field('invoiceNumber')} placeholder="e.g. INV-0042" />
 
+        <div className="grid grid-cols-2 gap-4">
+          <Field id="subtotal" label="Subtotal (ex-GST)" type="number" min="0" step="0.01" autoComplete="off"
+            value={form.subtotal} onChange={field('subtotal')} placeholder="0.00" />
+          <Field id="gst" label="GST" type="number" min="0" step="0.01" autoComplete="off"
+            value={form.gst} onChange={field('gst')} placeholder="0.00 (optional)" />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field id="amount" label="Amount" type="number" min="0" step="0.01" autoComplete="off"
+          <Field id="amount" label="Total (inc-GST)" type="number" min="0" step="0.01" autoComplete="off"
             value={form.amount} onChange={field('amount')} placeholder="0.00" error={amountError} />
           <div>
             <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">Currency</label>

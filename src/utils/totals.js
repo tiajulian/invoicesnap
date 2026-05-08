@@ -1,10 +1,13 @@
 export function computeTotals(invoices) {
-  const total = invoices.reduce((s, inv) => s + (parseFloat(inv.amount) || 0), 0)
-  const paid = invoices
-    .filter(inv => inv.status === 'paid')
-    .reduce((s, inv) => s + (parseFloat(inv.amount) || 0), 0)
-  const unpaid = invoices
-    .filter(inv => inv.status === 'unpaid')
-    .reduce((s, inv) => s + (parseFloat(inv.amount) || 0), 0)
-  return { count: invoices.length, total, paid, unpaid }
+  const sum = (key) => invoices.reduce((s, inv) => {
+    const v = parseFloat(inv[key])
+    return isNaN(v) ? s : s + v
+  }, 0)
+
+  return {
+    count:    invoices.length,
+    subtotal: sum('subtotal'),  // ex-GST; 0 when field not present
+    gst:      sum('gst'),       // GST only; nulls ignored
+    total:    sum('amount'),    // grand total inc-GST
+  }
 }

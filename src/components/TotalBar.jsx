@@ -1,22 +1,19 @@
 import { computeTotals } from '../utils/totals'
 import { formatCurrency } from '../utils/currency'
 
-// All 4 cards: white background, colored left-border accent, colored value text.
-// No mixed tinted backgrounds — consistent treatment across all cards.
 const CARDS = [
-  { key: 'count',  label: 'Invoices', icon: '🧾', isCount: true,
+  { key: 'count',    label: 'Invoices',       icon: '🧾', isCount: true,
     border: '#2563EB', value: '#1E3A5F' },
-  { key: 'total',  label: 'Total',    icon: '💳',
+  { key: 'subtotal', label: 'Subtotal (ex-GST)', icon: '📋',
     border: '#64748B', value: '#1E293B' },
-  { key: 'paid',   label: 'Paid',     icon: '✓',
+  { key: 'gst',      label: 'GST',             icon: '🏦',
+    border: '#7C3AED', value: '#5B21B6' },
+  { key: 'total',    label: 'Total (inc-GST)', icon: '💳',
     border: '#16A34A', value: '#15803D' },
-  { key: 'unpaid', label: 'Unpaid',   icon: '⏳',
-    border: '#D97706', value: '#B45309' },
 ]
 
 export default function TotalBar({ invoices }) {
-  const { count, total, paid, unpaid } = computeTotals(invoices)
-  const values = { count, total, paid, unpaid }
+  const totals = computeTotals(invoices)
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -30,13 +27,14 @@ export default function TotalBar({ invoices }) {
           }}
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 leading-none">
               {c.label}
             </p>
             <span className="text-sm">{c.icon}</span>
           </div>
-          <p className="text-xl sm:text-[26px] font-bold tabular-nums leading-none truncate" style={{ color: c.value }}>
-            {c.isCount ? values[c.key] : formatCurrency(values[c.key])}
+          <p className="text-xl sm:text-[26px] font-bold tabular-nums leading-none truncate"
+            style={{ color: c.value }}>
+            {c.isCount ? totals[c.key] : formatCurrency(totals[c.key])}
           </p>
         </div>
       ))}
