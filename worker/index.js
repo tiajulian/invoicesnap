@@ -1,8 +1,9 @@
 /**
  * InvoiceSnap OCR Proxy — Cloudflare Worker
  *
- * Forwards invoice scan requests to Gemini API.
- * Rate limited to 100 requests/day total across all users.
+ * Two rate limits:
+ * 1. Global lifetime cap: 1,000 total scans across all users ever
+ * 2. Per-IP daily cap: 50 scans per user per day
  */
 
 const ALLOWED_ORIGINS = [
@@ -14,8 +15,8 @@ const ALLOWED_ORIGINS = [
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
-// Hard cap per IP address per day
-const MAX_PER_IP_PER_DAY = 50
+const MAX_GLOBAL_TOTAL   = 1000  // lifetime cap across all users
+const MAX_PER_IP_PER_DAY = 50    // per user per day
 
 export default {
   async fetch(request, env) {
@@ -36,22 +37,35 @@ export default {
       return new Response('Method not allowed', { status: 405, headers: cors })
     }
 
-    // ── Rate limiting per IP via KV ────────────────────────────────────────
-    const ip = request.headers.get('CF-Connecting-IP') || 'unknown'
-    const today = new Date().toISOString().slice(0, 10) // "2026-05-08"
-    const kvKey = `ip:${ip}:${today}`
+    // ── 1. Global lifetime cap ─────────────────────────────────────────────
+    const globalCount = parseInt(await env.RATE_LIMIT.get('global:total') || '0')
 
-    const current = parseInt(await env.RATE_LIMIT.get(kvKey) || '0')
+    if (globalCount >= MAX_GLOBAL_TOTAL) {
+      return new Response(
+        JSON.stringify({ error: { message: 'Global scan limit reached.' } }),
+        { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } },
+      )
+    }
 
-    if (current >= MAX_PER_IP_PER_DAY) {
+    // ── 2. Per-IP daily cap ────────────────────────────────────────────────
+    const ip    = request.headers.get('CF-Connecting-IP') || 'unknown'
+    const today = new Date().toISOString().slice(0, 10)
+    const ipKey = `ip:${ip}:${today}`
+
+    const ipCount = parseInt(await env.RATE_LIMIT.get(ipKey) || '0')
+
+    if (ipCount >= MAX_PER_IP_PER_DAY) {
       return new Response(
         JSON.stringify({ error: { message: 'Daily scan limit reached. Try again tomorrow.' } }),
         { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } },
       )
     }
 
-    // Increment this IP's counter (expires after 25 hours)
-    await env.RATE_LIMIT.put(kvKey, String(current + 1), { expirationTtl: 90000 })
+    // ── Increment both counters ────────────────────────────────────────────
+    await Promise.all([
+      env.RATE_LIMIT.put('global:total', String(globalCount + 1)),          // no expiry — lifetime
+      env.RATE_LIMIT.put(ipKey, String(ipCount + 1), { expirationTtl: 90000 }), // expires after 25h
+    ])
 
     // ── Proxy to Gemini ────────────────────────────────────────────────────
     try {
