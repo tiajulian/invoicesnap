@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { loadInvoices, saveInvoices } from '../utils/storage'
 import { exportToExcel } from '../utils/exportExcel'
+import { getDefaultCurrency } from '../utils/settings'
 
 function uid() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
@@ -22,7 +23,7 @@ export function useInvoices() {
       id: uid(),
       createdAt: new Date().toISOString(),
       status: 'unpaid',
-      currency: 'AUD',
+      currency: getDefaultCurrency(),
       ...data,
       amount: normalizeAmount(data.amount),
     }

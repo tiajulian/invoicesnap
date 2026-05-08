@@ -86,14 +86,15 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
       {/* View or Edit */}
       {editing ? (
         <div className="space-y-4">
-          <EField label="Vendor" value={form.vendor} onChange={field('vendor')} placeholder="e.g. Acme Corp" />
-          <EField label="Invoice Number" value={form.invoiceNumber} onChange={field('invoiceNumber')} placeholder="e.g. INV-0042" />
+          <EField id="vendor" label="Vendor" autoComplete="organization" value={form.vendor} onChange={field('vendor')} placeholder="e.g. Acme Corp" />
+          <EField id="invoiceNumber" label="Invoice Number" autoComplete="off" value={form.invoiceNumber} onChange={field('invoiceNumber')} placeholder="e.g. INV-0042" />
           <div className="grid grid-cols-2 gap-4">
-            <EField label="Amount" value={form.amount} onChange={field('amount')} type="number" min="0" step="0.01" placeholder="0.00" error={amountError} />
+            <EField id="amount" label="Amount" autoComplete="off" value={form.amount} onChange={field('amount')} type="number" min="0" step="0.01" placeholder="0.00" error={amountError} />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
               {/* Bug #6: show full currency names, matching the Add form */}
               <select
+                id="currency" name="currency"
                 value={form.currency || 'AUD'}
                 onChange={e => field('currency')(e.target.value)}
                 className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -104,9 +105,19 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
               </select>
             </div>
           </div>
-          <EField label="Due Date" value={form.dueDate} onChange={field('dueDate')} type="date" />
-          {/* Bug #7: notes field has placeholder in edit mode */}
-          <EField label="Notes" value={form.notes} onChange={field('notes')} placeholder="Optional notes…" />
+          <EField id="dueDate" label="Due Date" autoComplete="off" value={form.dueDate} onChange={field('dueDate')} type="date" />
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              id="notes" name="notes"
+              value={form.notes ?? ''}
+              rows={3}
+              onChange={e => field('notes')(e.target.value)}
+              placeholder="Optional notes…"
+              autoComplete="off"
+              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
@@ -117,6 +128,7 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
               ].map(s => (
                 <button
                   key={s.value}
+                  type="button"
                   onClick={() => field('status')(s.value)}
                   className={`py-2.5 text-sm font-semibold transition-colors ${
                     (form.status || invoice.status) === s.value
@@ -132,12 +144,14 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
 
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={handleSave}
               className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
             >
               Save Changes
             </button>
             <button
+              type="button"
               onClick={handleCancel}
               className="px-5 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-100"
             >
@@ -165,12 +179,14 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
 
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={() => setEditing(true)}
               className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
             >
               Edit
             </button>
             <button
+              type="button"
               onClick={handleDelete}
               className="flex-1 bg-red-50 border border-red-200 text-red-600 py-2.5 rounded-xl font-semibold hover:bg-red-100 transition-colors"
             >
@@ -193,22 +209,25 @@ function Row({ label, value }) {
   )
 }
 
-function EField({ label, value, onChange, type = 'text', placeholder, min, step, error }) {
+function EField({ id, label, value, onChange, type = 'text', placeholder, min, step, error, autoComplete = 'off' }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <input
+        id={id}
+        name={id}
         type={type}
         value={value ?? ''}
         min={min}
         step={step}
         placeholder={placeholder}
+        autoComplete={autoComplete}
         onChange={e => onChange(e.target.value)}
         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
           error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300 focus:ring-blue-400'
         }`}
       />
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   )
 }

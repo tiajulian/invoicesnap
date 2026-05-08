@@ -4,8 +4,11 @@ import { useOCR } from '../hooks/useOCR'
 import { usePageTitle } from '../hooks/usePageTitle'
 import OCRProgress from '../components/OCRProgress'
 import { CURRENCIES } from '../utils/currency'
+import { getDefaultCurrency } from '../utils/settings'
 
-const BLANK = { vendor: '', invoiceNumber: '', amount: '', dueDate: '', currency: 'AUD', notes: '' }
+function makeBlank() {
+  return { vendor: '', invoiceNumber: '', amount: '', dueDate: '', currency: getDefaultCurrency(), notes: '' }
+}
 
 async function resizeImage(dataUrl, maxPx = 1200) {
   return new Promise(resolve => {
@@ -26,16 +29,20 @@ async function resizeImage(dataUrl, maxPx = 1200) {
 
 export default function AddInvoice({ onAdd }) {
   const navigate = useNavigate()
-  usePageTitle('Add Invoice') // Improvement #14
-  const { extractData, progress, isProcessing, error } = useOCR()
-  const [image, setImage] = useState(null)
-  const [form, setForm] = useState(BLANK)
-  const [status, setStatus] = useState('unpaid')
+  usePageTitle('Add Invoice')
+  const { extractData, progress, isProcessing, error: ocrError } = useOCR()
+
+  const [image, setImage]           = useState(null)
+  const [form, setForm]             = useState(makeBlank)
+  const [status, setStatus]         = useState('unpaid')
   const [cameraActive, setCameraActive] = useState(false)
-  const [vendorError, setVendorError] = useState('')   // Bug #3
-  const [amountError, setAmountError] = useState('')   // Bug #2
-  const fileRef = useRef(null)
-  const videoRef = useRef(null)
+  const [vendorError, setVendorError]   = useState('')
+  const [amountError, setAmountError]   = useState('')
+  const [uploadError, setUploadError]   = useState('')
+  const [toast, setToast]           = useState('')
+
+  const fileRef   = useRef(null)
+  const videoRef  = useRef(null)
   const streamRef = useRef(null)
 
   const field = (key) => (val) => {
@@ -57,6 +64,16 @@ export default function AddInvoice({ onAdd }) {
   }
 
   async function handleFile(file) {
+    setUploadError('')
+    // Client-side file type validation
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please select an image file (JPG, PNG, etc.)')
+      return
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setUploadError('Image is too large — please use one under 20 MB.')
+      return
+    }
     const reader = new FileReader()
     reader.onload = e => processImage(e.target.result)
     reader.readAsDataURL(file)
@@ -104,16 +121,27 @@ export default function AddInvoice({ onAdd }) {
       hasError = true
     }
     if (hasError) return
+
     onAdd({ ...form, image, status })
-    navigate('/')
+    setToast('Invoice saved!')
+    setTimeout(() => navigate('/'), 1200)
   }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-      {/* Back + title */}
+      {/* Toast */}
+      {toast && (
+        <div role="status" aria-live="polite" className="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50">
+          <div className="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-xl">
+            ✓ {toast}
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex items-center gap-3">
-        {/* Bug #8: aria-label for back button */}
         <button
+          type="button"
           onClick={() => navigate(-1)}
           aria-label="Go back"
           title="Go back"
@@ -127,22 +155,25 @@ export default function AddInvoice({ onAdd }) {
       {/* Image capture area */}
       {!image && !cameraActive && (
         <div className="border-2 border-dashed border-gray-300 rounded-2xl p-10 text-center space-y-4 bg-gray-50">
-          <p className="text-gray-400 text-sm">Capture or upload an invoice image — OCR will pre-fill the fields</p>
+          <p className="text-gray-400 text-sm">Capture or upload an invoice image — Gemini AI will pre-fill the fields</p>
           <div className="flex gap-3 justify-center flex-wrap">
             <button
+              type="button"
               onClick={startCamera}
               className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
             >
               📷 Use Camera
             </button>
             <button
+              type="button"
               onClick={() => fileRef.current?.click()}
               className="border border-gray-300 text-gray-700 px-5 py-2.5 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
             >
               📁 Upload File
             </button>
           </div>
-          <p className="text-xs text-gray-400">JPG, PNG — image stays on your device, never uploaded</p>
+          {uploadError && <p role="alert" className="text-sm text-red-600">{uploadError}</p>}
+          <p className="text-xs text-gray-400">JPG, PNG — image stays on your device, never stored externally</p>
           <input
             ref={fileRef}
             type="file"
@@ -153,58 +184,36 @@ export default function AddInvoice({ onAdd }) {
         </div>
       )}
 
-      {/* Live camera with alignment guide */}
+      {/* Live camera */}
       {cameraActive && (
         <div className="space-y-3">
           <div className="relative rounded-2xl overflow-hidden bg-black">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full block"
-            />
-
-            {/* Dark vignette outside the guide zone */}
+            <video ref={videoRef} autoPlay playsInline className="w-full block" />
             <div className="absolute inset-0 pointer-events-none"
-              style={{
-                background: `radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)`
-              }}
+              style={{ background: 'radial-gradient(ellipse 80% 70% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)' }}
             />
-
-            {/* Guide rectangle with corner brackets */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="relative w-[88%] h-[72%]">
-                {/* Corner L-shapes */}
-                {[
-                  'top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-sm',
+                {['top-0 left-0 border-t-[3px] border-l-[3px] rounded-tl-sm',
                   'top-0 right-0 border-t-[3px] border-r-[3px] rounded-tr-sm',
                   'bottom-0 left-0 border-b-[3px] border-l-[3px] rounded-bl-sm',
                   'bottom-0 right-0 border-b-[3px] border-r-[3px] rounded-br-sm',
-                ].map((cls, i) => (
-                  <div key={i} className={`absolute w-7 h-7 border-white ${cls}`} />
-                ))}
+                ].map((cls, i) => <div key={i} className={`absolute w-7 h-7 border-white ${cls}`} />)}
               </div>
             </div>
-
-            {/* Tip text at the bottom of the video */}
             <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-3 py-2 pointer-events-none">
               <p className="text-white text-xs text-center">
                 Hold phone directly above the invoice • Fill the frame • Keep steady
               </p>
             </div>
           </div>
-
           <div className="flex gap-3">
-            <button
-              onClick={capturePhoto}
-              className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-            >
+            <button type="button" onClick={capturePhoto}
+              className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors">
               📸 Capture
             </button>
-            <button
-              onClick={stopCamera}
-              className="px-5 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-100"
-            >
+            <button type="button" onClick={stopCamera}
+              className="px-5 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-100">
               Cancel
             </button>
           </div>
@@ -214,53 +223,41 @@ export default function AddInvoice({ onAdd }) {
       {/* Preview */}
       {image && (
         <div className="space-y-2">
-          <img
-            src={image}
-            alt="Invoice preview"
-            className="w-full max-h-56 object-contain rounded-2xl border border-gray-200 bg-gray-50"
-          />
-          <button
-            onClick={() => { setImage(null); setForm(BLANK) }}
-            className="text-sm text-red-500 hover:text-red-700"
-          >
+          <img src={image} alt="Invoice preview"
+            className="w-full max-h-56 object-contain rounded-2xl border border-gray-200 bg-gray-50" />
+          <button type="button" onClick={() => { setImage(null); setForm(makeBlank()) }}
+            className="text-sm text-red-500 hover:text-red-700">
             Remove image
           </button>
         </div>
       )}
 
-      <OCRProgress progress={progress} isProcessing={isProcessing} error={error} />
+      <OCRProgress progress={progress} isProcessing={isProcessing} error={ocrError} />
 
-      {/* Form fields */}
+      {/* Form */}
       <div className="space-y-4">
-        {/* Bug #3: vendor field with inline error */}
         <Field
-          label="Vendor Name *"
-          value={form.vendor}
-          onChange={field('vendor')}
-          placeholder="e.g. Acme Corp"
-          error={vendorError}
+          id="vendor" label="Vendor Name *" autoComplete="organization"
+          value={form.vendor} onChange={field('vendor')}
+          placeholder="e.g. Acme Corp" error={vendorError}
         />
         <Field
-          label="Invoice Number"
-          value={form.invoiceNumber}
-          onChange={field('invoiceNumber')}
+          id="invoiceNumber" label="Invoice Number" autoComplete="off"
+          value={form.invoiceNumber} onChange={field('invoiceNumber')}
           placeholder="e.g. INV-0042"
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
-            label="Amount"
-            value={form.amount}
-            onChange={field('amount')}
-            placeholder="0.00"
-            type="number"
-            min="0"
-            step="0.01"
-            error={amountError}
+            id="amount" label="Amount" type="number"
+            min="0" step="0.01" autoComplete="off"
+            value={form.amount} onChange={field('amount')}
+            placeholder="0.00" error={amountError}
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
             <select
+              id="currency" name="currency"
               value={form.currency}
               onChange={e => field('currency')(e.target.value)}
               className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -272,13 +269,22 @@ export default function AddInvoice({ onAdd }) {
           </div>
         </div>
 
-        <Field label="Due Date" value={form.dueDate} onChange={field('dueDate')} type="date" />
-        <Field
-          label="Notes"
-          value={form.notes}
-          onChange={field('notes')}
-          placeholder="Optional notes…"
-        />
+        <Field id="dueDate" label="Due Date" type="date" autoComplete="off"
+          value={form.dueDate} onChange={field('dueDate')} />
+
+        {/* Notes — textarea for multi-line input */}
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <textarea
+            id="notes" name="notes"
+            value={form.notes}
+            rows={3}
+            onChange={e => field('notes')(e.target.value)}
+            placeholder="Optional notes…"
+            autoComplete="off"
+            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+          />
+        </div>
 
         {/* Status — segmented control */}
         <div>
@@ -290,6 +296,7 @@ export default function AddInvoice({ onAdd }) {
             ].map(s => (
               <button
                 key={s.value}
+                type="button"
                 onClick={() => setStatus(s.value)}
                 className={`py-2.5 text-sm font-semibold transition-colors ${
                   status === s.value ? s.active : 'bg-white text-gray-400 hover:bg-gray-50'
@@ -303,6 +310,7 @@ export default function AddInvoice({ onAdd }) {
       </div>
 
       <button
+        type="button"
         onClick={handleSave}
         disabled={isProcessing}
         className="w-full bg-blue-600 text-white py-3 rounded-2xl font-bold text-base hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
@@ -313,25 +321,25 @@ export default function AddInvoice({ onAdd }) {
   )
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text', min, step, error }) {
+function Field({ id, label, value, onChange, placeholder, type = 'text', min, step, error, autoComplete = 'off' }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <input
+        id={id}
+        name={id}
         type={type}
         value={value}
         min={min}
         step={step}
+        autoComplete={autoComplete}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         className={`w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
-          error
-            ? 'border-red-400 focus:ring-red-400 bg-red-50'
-            : 'border-gray-300 focus:ring-blue-400'
+          error ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300 focus:ring-blue-400'
         }`}
       />
-      {/* Bug #3: inline error message */}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   )
 }
