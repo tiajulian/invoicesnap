@@ -16,7 +16,7 @@ const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 const MAX_GLOBAL_TOTAL   = 1000  // lifetime cap across all users
-const MAX_PER_IP_PER_DAY = 50    // per user per day
+const MAX_PER_IP_PER_DAY = 100   // per user per day
 
 export default {
   async fetch(request, env) {
