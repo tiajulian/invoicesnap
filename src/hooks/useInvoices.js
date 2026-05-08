@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { loadInvoices, saveInvoices } from '../utils/storage'
+import { exportToExcel } from '../utils/exportExcel'
 
 function uid() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
@@ -63,15 +64,9 @@ export function useInvoices() {
     })
   }, [])
 
-  const exportJSON = useCallback(() => {
-    const blob = new Blob([JSON.stringify(invoices, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `invoicesnap-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+  const exportExcel = useCallback(() => {
+    exportToExcel(invoices)
   }, [invoices])
 
-  return { invoices, addInvoice, updateInvoice, deleteInvoice, toggleStatus, exportJSON }
+  return { invoices, addInvoice, updateInvoice, deleteInvoice, toggleStatus, exportExcel }
 }

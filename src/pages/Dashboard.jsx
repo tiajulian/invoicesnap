@@ -24,7 +24,7 @@ export default function Dashboard({ invoices, onToggleStatus, onExport }) {
               onClick={onExport}
               className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-1.5"
             >
-              ↓ Export JSON
+              ↓ Export Excel
             </button>
           )}
           <button

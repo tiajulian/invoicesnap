@@ -8,7 +8,7 @@ import Settings from './pages/Settings'
 import { useInvoices } from './hooks/useInvoices'
 
 export default function App() {
-  const { invoices, addInvoice, updateInvoice, deleteInvoice, toggleStatus, exportJSON } = useInvoices()
+  const { invoices, addInvoice, updateInvoice, deleteInvoice, toggleStatus, exportExcel } = useInvoices()
 
   return (
     <HashRouter>
@@ -17,7 +17,7 @@ export default function App() {
         <Routes>
           <Route
             path="/"
-            element={<Dashboard invoices={invoices} onToggleStatus={toggleStatus} onExport={exportJSON} />}
+            element={<Dashboard invoices={invoices} onToggleStatus={toggleStatus} onExport={exportExcel} />}
           />
           <Route
             path="/invoices"
