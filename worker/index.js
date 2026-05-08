@@ -14,8 +14,8 @@ const ALLOWED_ORIGINS = [
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 
-// Hard cap: max requests per day across all users
-const MAX_REQUESTS_PER_DAY = 100
+// Hard cap per IP address per day
+const MAX_PER_IP_PER_DAY = 50
 
 export default {
   async fetch(request, env) {
@@ -36,20 +36,21 @@ export default {
       return new Response('Method not allowed', { status: 405, headers: cors })
     }
 
-    // ── Rate limiting via KV ───────────────────────────────────────────────
+    // ── Rate limiting per IP via KV ────────────────────────────────────────
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown'
     const today = new Date().toISOString().slice(0, 10) // "2026-05-08"
-    const kvKey = `count:${today}`
+    const kvKey = `ip:${ip}:${today}`
 
     const current = parseInt(await env.RATE_LIMIT.get(kvKey) || '0')
 
-    if (current >= MAX_REQUESTS_PER_DAY) {
+    if (current >= MAX_PER_IP_PER_DAY) {
       return new Response(
         JSON.stringify({ error: { message: 'Daily scan limit reached. Try again tomorrow.' } }),
         { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } },
       )
     }
 
-    // Increment counter (expires after 25 hours)
+    // Increment this IP's counter (expires after 25 hours)
     await env.RATE_LIMIT.put(kvKey, String(current + 1), { expirationTtl: 90000 })
 
     // ── Proxy to Gemini ────────────────────────────────────────────────────
