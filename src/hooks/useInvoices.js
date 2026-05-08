@@ -21,7 +21,7 @@ export function useInvoices() {
       id: uid(),
       createdAt: new Date().toISOString(),
       status: 'unpaid',
-      currency: 'USD',
+      currency: 'AUD',
       ...data,
       amount: normalizeAmount(data.amount),
     }

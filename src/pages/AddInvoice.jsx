@@ -5,7 +5,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import OCRProgress from '../components/OCRProgress'
 import { CURRENCIES } from '../utils/currency'
 
-const BLANK = { vendor: '', invoiceNumber: '', amount: '', dueDate: '', currency: 'USD', notes: '' }
+const BLANK = { vendor: '', invoiceNumber: '', amount: '', dueDate: '', currency: 'AUD', notes: '' }
 
 async function resizeImage(dataUrl, maxPx = 1200) {
   return new Promise(resolve => {

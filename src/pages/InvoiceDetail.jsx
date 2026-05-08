@@ -93,7 +93,7 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
               <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
               {/* Bug #6: show full currency names, matching the Add form */}
               <select
-                value={form.currency || 'USD'}
+                value={form.currency || 'AUD'}
                 onChange={e => field('currency')(e.target.value)}
                 className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
@@ -148,7 +148,7 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
             <Row label="Invoice #" value={invoice.invoiceNumber} />
             <Row label="Amount" value={formatCurrency(invoice.amount, invoice.currency)} />
             {/* Improvement #10: show currency in detail view */}
-            {invoice.currency && invoice.currency !== 'USD' && (
+            {invoice.currency && invoice.currency !== 'AUD' && (
               <Row label="Currency" value={`${invoice.currency} — ${CURRENCIES.find(c => c.code === invoice.currency)?.label ?? invoice.currency}`} />
             )}
             {/* Bug #4: format due date consistently */}

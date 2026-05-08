@@ -9,7 +9,7 @@ export default function Dashboard({ invoices, onToggleStatus, onExport }) {
   const recent = invoices.slice(0, 5)
 
   // Improvement #11: detect multiple currencies for the warning
-  const currencies = [...new Set(invoices.map(inv => inv.currency || 'USD'))]
+  const currencies = [...new Set(invoices.map(inv => inv.currency || 'AUD'))]
   const hasMultiCurrency = currencies.length > 1
 
   return (
