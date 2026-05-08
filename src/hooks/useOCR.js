@@ -69,11 +69,18 @@ CRITICAL RULES:
   }
 
   const data = await res.json()
-  // 2.5-flash is a thinking model — skip thought parts, use the last text part
+
+  // 2.5-flash is a thinking model — parts may include thought parts and answer parts
   const parts = data.candidates?.[0]?.content?.parts ?? []
   const raw = parts.filter(p => !p.thought).map(p => p.text).join('') || '{}'
   const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0] ?? '{}'
+
+  // Debug — visible in browser DevTools > Console
+  console.log('[InvoiceSnap OCR] Raw Gemini text:', raw)
+  console.log('[InvoiceSnap OCR] Extracted JSON string:', jsonStr)
+
   const parsed = JSON.parse(jsonStr)
+  console.log('[InvoiceSnap OCR] Parsed fields:', parsed)
 
   for (const key of ['amount', 'subtotal', 'gst']) {
     if (parsed[key] !== undefined) {
