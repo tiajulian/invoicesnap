@@ -63,6 +63,7 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
         <button
           onClick={() => navigate(-1)}
           aria-label="Go back"
+          title="Go back"
           className="text-gray-400 hover:text-gray-700 text-xl"
         >
           ←
@@ -109,18 +110,21 @@ export default function InvoiceDetail({ invoices, onUpdate, onDelete, onToggleSt
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <div className="flex gap-2">
-              {['unpaid', 'paid'].map(s => (
+            <div className="grid grid-cols-2 rounded-xl overflow-hidden border border-gray-200">
+              {[
+                { value: 'unpaid', label: '⏳ Unpaid', active: 'bg-amber-500 text-white' },
+                { value: 'paid',   label: '✓ Paid',   active: 'bg-green-500 text-white' },
+              ].map(s => (
                 <button
-                  key={s}
-                  onClick={() => field('status')(s)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold capitalize transition-colors ${
-                    (form.status || invoice.status) === s
-                      ? s === 'paid' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  key={s.value}
+                  onClick={() => field('status')(s.value)}
+                  className={`py-2.5 text-sm font-semibold transition-colors ${
+                    (form.status || invoice.status) === s.value
+                      ? s.active
+                      : 'bg-white text-gray-400 hover:bg-gray-50'
                   }`}
                 >
-                  {s}
+                  {s.label}
                 </button>
               ))}
             </div>

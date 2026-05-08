@@ -98,9 +98,31 @@ export default function InvoiceList({ invoices, onToggleStatus }) {
 
       {/* List */}
       {sorted.length === 0 ? (
-        <p className="text-center text-gray-400 py-16">
-          {search ? `No invoices match "${search}".` : 'No invoices match this filter.'}
-        </p>
+        <div className="text-center py-16 space-y-3">
+          <p className="text-4xl">{invoices.length === 0 ? '🧾' : '🔍'}</p>
+          <p className="text-gray-600 font-medium">
+            {invoices.length === 0
+              ? 'No invoices yet'
+              : search
+              ? `No results for "${search}"`
+              : `No ${filter} invoices`}
+          </p>
+          {invoices.length === 0 ? (
+            <button
+              onClick={() => navigate('/add')}
+              className="bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors"
+            >
+              + Add your first invoice
+            </button>
+          ) : (
+            <button
+              onClick={() => { setSearch(''); setFilter('all') }}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
       ) : (
         <div className="space-y-3">
           {sorted.map(inv => (

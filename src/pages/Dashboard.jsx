@@ -72,13 +72,12 @@ export default function Dashboard({ invoices, onToggleStatus, onExport }) {
           </div>
         </div>
       ) : (
-        /* Improvement #13: friendly empty state */
-        <div className="text-center py-20 space-y-4 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50">
+        <div className="text-center py-16 space-y-4">
           <p className="text-5xl">🧾</p>
           <div>
-            <p className="text-xl font-semibold text-gray-500">No invoices yet</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Click <strong>+ Add Invoice</strong> to snap a photo or upload an image — OCR will fill in the details for you.
+            <p className="text-xl font-semibold text-gray-700">No invoices yet</p>
+            <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">
+              Snap a photo or upload an invoice image — Gemini AI will read and fill in the details for you.
             </p>
           </div>
           <button

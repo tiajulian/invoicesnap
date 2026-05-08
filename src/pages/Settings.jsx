@@ -10,7 +10,7 @@ export default function Settings() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} aria-label="Go back" className="text-gray-400 hover:text-gray-700 text-xl">←</button>
+        <button onClick={() => navigate(-1)} aria-label="Go back" title="Go back" className="text-gray-400 hover:text-gray-700 text-xl">←</button>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
       </div>
 
