@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { getOCREngine } from '../utils/ocrEngine'
+import { getOCREngine, getGeminiKey } from '../utils/ocrEngine'
 
 // ── Otsu binarization preprocessing ───────────────────────────────────────
 function otsuThreshold(gray, size) {
@@ -107,6 +107,55 @@ async function extractWithDonut(imageDataUrl, onProgress) {
   return result
 }
 
+// ── Gemini vision API ─────────────────────────────────────────────────────
+async function extractWithGemini(imageDataUrl, apiKey, onProgress) {
+  onProgress(10)
+  const match = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/)
+  if (!match) throw new Error('Invalid image data')
+  const [, mimeType, b64] = match
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mimeType, data: b64 } },
+            { text: `Extract data from this invoice image. Return ONLY a JSON object — no markdown, no explanation.
+
+{
+  "vendor": "company name issuing this invoice (the supplier/seller, NOT the customer/bill-to)",
+  "invoiceNumber": "invoice or reference number as a string",
+  "amount": 123.45,
+  "dueDate": "YYYY-MM-DD",
+  "currency": "3-letter ISO code e.g. AUD USD EUR GBP"
+}
+
+Omit any field you cannot confidently determine. For amount use the final Total, not Sub Total.` },
+          ],
+        }],
+        generationConfig: { temperature: 0, maxOutputTokens: 300 },
+      }),
+    },
+  )
+
+  onProgress(80)
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gemini API error ${res.status}`)
+  }
+
+  const data = await res.json()
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+  const jsonStr = text.match(/\{[\s\S]*\}/)?.[0] ?? '{}'
+  const parsed = JSON.parse(jsonStr)
+  if (parsed.amount !== undefined) parsed.amount = Math.max(0, parseFloat(parsed.amount) || 0)
+  return parsed
+}
+
 // ── Tesseract fallback ─────────────────────────────────────────────────────
 async function extractWithTesseract(imageDataUrl, onProgress) {
   const { createWorker } = await import('tesseract.js')
@@ -136,11 +185,16 @@ export function useOCR() {
     setProgress(0)
     setError(null)
 
-    const chosenEngine = getOCREngine()
+    const geminiKey = getGeminiKey()
+    const chosenEngine = geminiKey ? 'gemini' : getOCREngine()
     setEngine(chosenEngine)
 
     try {
-      if (chosenEngine === 'donut') {
+      if (chosenEngine === 'gemini') {
+        const result = await extractWithGemini(imageData, geminiKey, setProgress)
+        setProgress(100)
+        return result
+      } else if (chosenEngine === 'donut') {
         const result = await extractWithDonut(imageData, setProgress)
         setProgress(100)
         return result
