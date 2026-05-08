@@ -192,25 +192,26 @@ function parseOCRText(rawText) {
     if (!isNaN(val) && val > 0) allAmounts.push({ val, index: m.index })
   }
   if (allAmounts.length > 0) {
-    // Require a colon after plain "Total" so we don't match table column headers
-    // ("Total" column header has no colon; "Sub Total:" and "Total:" do).
-    const totalRx = /\b(?:grand\s+total|total\s+(?:due|amount)|amount\s+due|balance\s+(?:due|forward)|invoice\s+total|total\s*:)\s*/gi
-    let bestAmount
-    for (const tm of text.matchAll(totalRx)) {
-      // Skip if the matched keyword is preceded by "Sub" — e.g. "Sub Total:"
-      const charsBefore = text.slice(Math.max(0, tm.index - 6), tm.index)
-      if (/sub\s*$/i.test(charsBefore)) continue
+    // Line-by-line strategy: more robust than character-position matching.
+    // 1. Discard any line that contains "sub total" or "subtotal".
+    // 2. From remaining lines, collect amounts on lines that mention a total keyword.
+    // 3. Pick the largest of those amounts (grand total > subtotal > line item).
+    // 4. Fall back to the largest amount on the entire page.
+    const totalKeywordRx = /\b(?:grand\s+total|total\s+(?:due|amount)|amount\s+due|balance\s+(?:due|forward)|invoice\s+total|total)\b/i
+    const subTotalRx = /\bsub\s*total\b/i
 
-      const keyEnd = tm.index + tm[0].length
-      const nearby = allAmounts
-        .filter(a => a.index >= keyEnd && a.index < keyEnd + 120)
-        .sort((a, b) => a.index - b.index)
-      if (nearby.length && (!bestAmount || nearby[0].val > bestAmount.val)) bestAmount = nearby[0]
+    const totalLineAmounts = []
+    for (const line of text.split('\n')) {
+      if (subTotalRx.test(line)) continue          // skip "Sub Total" lines
+      if (!totalKeywordRx.test(line)) continue     // skip lines with no total keyword
+      for (const m of line.matchAll(/(?:\$\s*)?([\d,]{1,10}\.\d{2})\b/g)) {
+        const val = parseFloat(m[1].replace(/,/g, ''))
+        if (!isNaN(val) && val > 0) totalLineAmounts.push(val)
+      }
     }
-    // Fallback: largest amount in the document (the grand total is almost always
-    // the biggest single number on an invoice)
-    result.amount = bestAmount
-      ? bestAmount.val
+
+    result.amount = totalLineAmounts.length > 0
+      ? Math.max(...totalLineAmounts)
       : allAmounts.reduce((mx, a) => (a.val > mx.val ? a : mx)).val
   }
 
