@@ -9,7 +9,7 @@ import Settings from './pages/Settings'
 import { useInvoices } from './hooks/useInvoices'
 
 export default function App() {
-  const { invoices, addInvoice, updateInvoice, deleteInvoice, toggleStatus, exportExcel } = useInvoices()
+  const { invoices, addInvoice, updateInvoice, deleteInvoice, deleteAllInvoices, toggleStatus, exportExcel } = useInvoices()
 
   return (
     <HashRouter>
@@ -36,7 +36,7 @@ export default function App() {
               />
             }
           />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={<Settings onDeleteAll={deleteAllInvoices} invoiceCount={invoices.length} />} />
         </Routes>
         <BottomNav />
       </div>

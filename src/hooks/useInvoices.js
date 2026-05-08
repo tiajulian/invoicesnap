@@ -88,9 +88,14 @@ export function useInvoices() {
     })
   }, [])
 
+  const deleteAllInvoices = useCallback(() => {
+    setInvoices([])
+    saveInvoices([])
+  }, [])
+
   const exportExcel = useCallback(() => {
     exportToExcel(invoices)
   }, [invoices])
 
-  return { invoices, addInvoice, updateInvoice, deleteInvoice, toggleStatus, exportExcel }
+  return { invoices, addInvoice, updateInvoice, deleteInvoice, deleteAllInvoices, toggleStatus, exportExcel }
 }
