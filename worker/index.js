@@ -2,12 +2,7 @@
  * InvoiceSnap OCR Proxy — Cloudflare Worker
  *
  * Forwards invoice scan requests to Gemini API.
- * The GEMINI_API_KEY secret is stored in Cloudflare — never in the app bundle.
- *
- * Deploy:
- *   cd worker
- *   npx wrangler deploy
- *   npx wrangler secret put GEMINI_API_KEY   ← paste your key when prompted
+ * Rate limited to 100 requests/day total across all users.
  */
 
 const ALLOWED_ORIGINS = [
@@ -18,6 +13,9 @@ const ALLOWED_ORIGINS = [
 
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+
+// Hard cap: max requests per day across all users
+const MAX_REQUESTS_PER_DAY = 100
 
 export default {
   async fetch(request, env) {
@@ -30,7 +28,6 @@ export default {
       'Access-Control-Allow-Headers': 'Content-Type',
     }
 
-    // Preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors })
     }
@@ -39,6 +36,23 @@ export default {
       return new Response('Method not allowed', { status: 405, headers: cors })
     }
 
+    // ── Rate limiting via KV ───────────────────────────────────────────────
+    const today = new Date().toISOString().slice(0, 10) // "2026-05-08"
+    const kvKey = `count:${today}`
+
+    const current = parseInt(await env.RATE_LIMIT.get(kvKey) || '0')
+
+    if (current >= MAX_REQUESTS_PER_DAY) {
+      return new Response(
+        JSON.stringify({ error: { message: 'Daily scan limit reached. Try again tomorrow.' } }),
+        { status: 429, headers: { ...cors, 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Increment counter (expires after 25 hours)
+    await env.RATE_LIMIT.put(kvKey, String(current + 1), { expirationTtl: 90000 })
+
+    // ── Proxy to Gemini ────────────────────────────────────────────────────
     try {
       const body = await request.json()
 

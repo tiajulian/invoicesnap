@@ -1,3 +1,7 @@
 name = "invoicesnap-ocr"
 main = "index.js"
 compatibility_date = "2024-09-23"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "700d449486c24fc992f7d92f1d9ee095"
