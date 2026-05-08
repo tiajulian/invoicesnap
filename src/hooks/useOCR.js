@@ -34,6 +34,7 @@ Omit any field you cannot confidently determine. For amount use the final Total,
         ],
       }],
       generationConfig: { temperature: 0, maxOutputTokens: 300 },
+      thinkingConfig: { thinkingBudget: 0 },
     }),
   })
 
@@ -45,7 +46,9 @@ Omit any field you cannot confidently determine. For amount use the final Total,
   }
 
   const data = await res.json()
-  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+  // 2.5-flash is a thinking model — skip thought parts, use the last text part
+  const parts = data.candidates?.[0]?.content?.parts ?? []
+  const raw = parts.filter(p => !p.thought).map(p => p.text).join('') || '{}'
   const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0] ?? '{}'
   const parsed = JSON.parse(jsonStr)
 
